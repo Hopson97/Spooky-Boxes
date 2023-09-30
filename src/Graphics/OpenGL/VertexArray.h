@@ -11,10 +11,10 @@ struct VAODrawData
     GLsizei indices_;
 };
 
-struct GLVertexArray : public GLResource<&glCreateVertexArrays, &glDeleteVertexArrays>
+struct VertexArray : public GLResource<&glCreateVertexArrays, &glDeleteVertexArrays>
 {
-    GLVertexArray() = default;
-    GLVertexArray(const BasicMesh& mesh);
+    VertexArray() = default;
+    VertexArray(const BasicMesh& mesh);
 
     void bind() const;
     void buffer_mesh(const BasicMesh& mesh);

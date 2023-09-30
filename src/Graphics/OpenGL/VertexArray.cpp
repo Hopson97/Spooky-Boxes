@@ -1,17 +1,17 @@
 #include "VertexArray.h"
 
-GLVertexArray::GLVertexArray(const BasicMesh& mesh)
+VertexArray::VertexArray(const BasicMesh& mesh)
 {
     buffer_mesh(mesh);
 }
 
-void GLVertexArray::bind() const
+void VertexArray::bind() const
 {
     assert(id);
     glBindVertexArray(id);
 }
 
-void GLVertexArray::buffer_mesh(const BasicMesh& mesh)
+void VertexArray::buffer_mesh(const BasicMesh& mesh)
 {
     assert(id);
 
@@ -49,7 +49,7 @@ void GLVertexArray::buffer_mesh(const BasicMesh& mesh)
     buffers_.push_back(std::move(ebo));
 }
 
-void GLVertexArray::draw()
+void VertexArray::draw()
 {
     glDrawElements(GL_TRIANGLES, indices_, GL_UNSIGNED_INT, nullptr);
 }

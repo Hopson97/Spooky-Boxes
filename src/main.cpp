@@ -172,10 +172,10 @@ int main()
     // ----------------------------------------
     // ==== Create the Meshes + OpenGL vertex array ====
     // ----------------------------------------
-    GLVertexArray billboard_vertex_array{generate_quad_mesh(1.0f, 2.0f)};
-    GLVertexArray terrain_vertex_array{generate_terrain_mesh(128)};
-    GLVertexArray light_vertex_array{generate_cube_mesh({0.2f, 0.2f, 0.2f})};
-    GLVertexArray box_vertex_array{generate_cube_mesh({2.0f, 2.0f, 2.0f})};
+    VertexArray billboard_vertex_array{generate_quad_mesh(1.0f, 2.0f)};
+    VertexArray terrain_vertex_array{generate_terrain_mesh(128)};
+    VertexArray light_vertex_array{generate_cube_mesh({0.2f, 0.2f, 0.2f})};
+    VertexArray box_vertex_array{generate_cube_mesh({2.0f, 2.0f, 2.0f})};
 
     // ------------------------------------
     // ==== Create the OpenGL Textures ====
