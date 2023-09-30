@@ -1,0 +1,11 @@
+sfx_step_grass_l.ogg, sfx_step_grass_r.ogg
+https://opengameart.org/content/grass-foot-step-sounds-yo-frankie
+------------------------------------------------------------------
+crickets.ogg
+https://opengameart.org/content/crickets-ambient-noise-loopable
+------------------------------------------------------------------
+Atmosphere_003(Loop).wav
+www.blackleafstudios.net
+contact@blackleafstudios.net
+https://opengameart.org/content/horror-atmosphere-lite
+------------------------------------------------------------------
