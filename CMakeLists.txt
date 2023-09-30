@@ -16,10 +16,11 @@ add_executable(${PROJECT_NAME}
     src/GUI.cpp
     src/Util.cpp
 
-    src/Graphics/MeshGeneration.cpp
+    src/Graphics/Mesh.cpp
     src/Graphics/OpenGL/Shader.cpp
     src/Graphics/OpenGL/Texture.cpp
     src/Graphics/OpenGL/GLDebugEnable.cpp
+    src/Graphics/OpenGL/VertexArray.cpp
 )
 
 #Set C++17

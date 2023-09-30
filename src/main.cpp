@@ -9,11 +9,12 @@
 
 #include "GUI.h"
 #include "Graphics/Lights.h"
-#include "Graphics/MeshGeneration.h"
+#include "Graphics/Mesh.h"
 #include "Graphics/OpenGL/GLDebugEnable.h"
 #include "Graphics/OpenGL/GLResource.h"
 #include "Graphics/OpenGL/Shader.h"
 #include "Graphics/OpenGL/Texture.h"
+#include "Graphics/OpenGL/VertexArray.h"
 #include "Util.h"
 
 #include <imgui.h>
@@ -24,13 +25,6 @@
 
 namespace
 {
-
-    struct VertexArray
-    {
-        GLVertexArray vao;
-        GLBuffer vbo;
-        GLBuffer ebo;
-    };
     struct Material
     {
         Texture2D colour_texture;
@@ -175,59 +169,13 @@ int main()
         return -1;
     }
 
-    // ---------------------------
-    // ==== Create the Meshes ====
-    // ---------------------------
-    Mesh billboard_mesh = generate_quad_mesh(1.0f, 2.0f);
-    Mesh terrain_mesh = generate_terrain_mesh(128);
-    Mesh light_mesh = generate_cube_mesh({0.2f, 0.2f, 0.2f});
-    Mesh box_mesh = generate_cube_mesh({2.0f, 2.0f, 2.0f});
-
     // ----------------------------------------
-    // ==== Create the OpenGL vertex array ====
+    // ==== Create the Meshes + OpenGL vertex array ====
     // ----------------------------------------
-    auto buffer_mesh = [](Mesh& mesh)
-    {
-        VertexArray vertex_array;
-
-        // Create the OpenGL buffer objects
-        auto& vao = vertex_array.vao;
-
-        // Element buffer
-        glNamedBufferStorage(vertex_array.ebo.id, mesh.indices.size() * sizeof(GLuint),
-                             mesh.indices.data(), 0x0);
-        glVertexArrayElementBuffer(vao.id, vertex_array.ebo.id);
-
-        // glBufferData
-        // glNamedBufferStorage(vbo, points.size() * sizeof(Vertex), points.data(), 0x0);
-        glNamedBufferStorage(vertex_array.vbo.id, sizeof(Vertex) * mesh.vertices.size(),
-                             mesh.vertices.data(), GL_DYNAMIC_STORAGE_BIT);
-
-        // Attach the vertex array to the vertex buffer and element buffer
-        glVertexArrayVertexBuffer(vao.id, 0, vertex_array.vbo.id, 0, sizeof(Vertex));
-
-        // glEnableVertexAttribArray
-        glEnableVertexArrayAttrib(vao.id, 0);
-        glEnableVertexArrayAttrib(vao.id, 1);
-        glEnableVertexArrayAttrib(vao.id, 2);
-
-        // glVertexAttribPointer
-        glVertexArrayAttribFormat(vao.id, 0, 3, GL_FLOAT, GL_FALSE,
-                                  offsetof(Vertex, position));
-        glVertexArrayAttribFormat(vao.id, 1, 2, GL_FLOAT, GL_FALSE,
-                                  offsetof(Vertex, texture_coord));
-        glVertexArrayAttribFormat(vao.id, 2, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
-        glVertexArrayAttribBinding(vao.id, 0, 0);
-        glVertexArrayAttribBinding(vao.id, 1, 0);
-        glVertexArrayAttribBinding(vao.id, 2, 0);
-
-        return vertex_array;
-    };
-
-    auto billboard_vertex_array = buffer_mesh(billboard_mesh);
-    auto terrain_vertex_array = buffer_mesh(terrain_mesh);
-    auto light_vertex_array = buffer_mesh(light_mesh);
-    auto box_vertex_array = buffer_mesh(box_mesh);
+    GLVertexArray billboard_vertex_array{generate_quad_mesh(1.0f, 2.0f)};
+    GLVertexArray terrain_vertex_array{generate_terrain_mesh(128)};
+    GLVertexArray light_vertex_array{generate_cube_mesh({0.2f, 0.2f, 0.2f})};
+    GLVertexArray box_vertex_array{generate_cube_mesh({2.0f, 2.0f, 2.0f})};
 
     // ------------------------------------
     // ==== Create the OpenGL Textures ====
@@ -553,21 +501,21 @@ int main()
         }
 
         scene_shader.set_uniform("model_matrix", terrain_mat);
-        terrain_vertex_array.vao.bind();
-        glDrawElements(GL_TRIANGLES, terrain_mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
+        terrain_vertex_array.bind();
+        terrain_vertex_array.draw();
 
         // Set the box transforms and render
         create_material.bind();
-        box_vertex_array.vao.bind();
+        box_vertex_array.bind();
         for (auto& box_matrix : box_mats)
         {
             scene_shader.set_uniform("model_matrix", box_matrix);
-            glDrawElements(GL_TRIANGLES, box_mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
+            box_vertex_array.draw();
         }
 
         // Draw billboards
         person_material.bind();
-        billboard_vertex_array.vao.bind();
+        billboard_vertex_array.bind();
         for (auto& transform : people_transforms)
         {
 
@@ -583,15 +531,15 @@ int main()
             billboard_mat = glm::rotate(billboard_mat, r, {0, 1, 0});
 
             scene_shader.set_uniform("model_matrix", billboard_mat);
-            glDrawElements(GL_TRIANGLES, billboard_mesh.indices.size(), GL_UNSIGNED_INT,
-                           nullptr);
+
+            billboard_vertex_array.draw();
         }
 
         // Set the light trasform and render
         scene_shader.set_uniform("is_light", true);
         scene_shader.set_uniform("model_matrix", light_mat);
-        light_vertex_array.vao.bind();
-        glDrawElements(GL_TRIANGLES, light_mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
+        light_vertex_array.bind();
+        light_vertex_array.draw();
 
         // --------------------------
         // ==== Render to window ====

@@ -10,19 +10,22 @@
 
 #include "../Util.h"
 
-struct Vertex
+struct BasicVertex
 {
     glm::vec3 position{0.0f};
     glm::vec2 texture_coord{0.0f};
     glm::vec3 normal{0.0f};
 };
 
+template <typename VertexType>
 struct Mesh
 {
-    std::vector<Vertex> vertices;
+    std::vector<VertexType> vertices;
     std::vector<GLuint> indices;
 };
 
-[[nodiscard]] Mesh generate_quad_mesh(float w, float h);
-[[nodiscard]] Mesh generate_cube_mesh(const glm::vec3& size);
-[[nodiscard]] Mesh generate_terrain_mesh(int size);
+using BasicMesh = Mesh<BasicVertex>;
+
+[[nodiscard]] BasicMesh generate_quad_mesh(float w, float h);
+[[nodiscard]] BasicMesh generate_cube_mesh(const glm::vec3& size);
+[[nodiscard]] BasicMesh generate_terrain_mesh(int size);

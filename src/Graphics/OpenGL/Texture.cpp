@@ -3,6 +3,29 @@
 #include <SFML/Graphics/Image.hpp>
 #include <iostream>
 
+//=======================
+// == Helper functions ==
+//=======================
+bool load_image_from_file(const std::filesystem::path& path, bool flip_vertically,
+                          bool flip_horizontally, sf::Image& out_image)
+{
+    if (!out_image.loadFromFile(path.string()))
+    {
+        return false;
+    }
+
+    if (flip_vertically)
+    {
+        out_image.flipVertically();
+    }
+    if (flip_horizontally)
+    {
+        out_image.flipHorizontally();
+    }
+
+    return true;
+}
+
 //=======================================
 // == GLTextureResource Implementation ==
 //=======================================
@@ -53,20 +76,13 @@ bool Texture2D::load_from_file(const std::filesystem::path& path, GLsizei levels
                                bool flip_vertically, bool flip_horizontally,
                                TextureInternalFormat internal_format, TextureFormat format)
 {
-    std::cout << "Loading texture " << path << '\n';
     sf::Image image;
+    if (!load_image_from_file(path, flip_vertically, flip_horizontally, image))
+        return false;
 
-    // clang-format off
-    if (!image.loadFromFile(path.string())) return false;
-
-    if (flip_vertically)    image.flipVertically();
-    if (flip_horizontally)  image.flipHorizontally();
-    // clang-format on
-
-    // Get shorthand image data
-    auto w = image.getSize().x;
-    auto h = image.getSize().y;
-    auto data = image.getPixelsPtr();
+    const auto w = image.getSize().x;
+    const auto h = image.getSize().y;
+    const auto data = image.getPixelsPtr();
 
     // Allocate the storage
     glTextureStorage2D(id, levels, static_cast<GLenum>(format), w, h);

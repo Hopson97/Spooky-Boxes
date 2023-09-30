@@ -1,12 +1,14 @@
 #pragma once
 
-#include "GLResource.h"
-#include <glad/glad.h>
-#include <glm/glm.hpp>
-
 #include <filesystem>
 #include <string_view>
 #include <unordered_map>
+
+#include <SFML/Graphics/Image.hpp>
+#include <glad/glad.h>
+#include <glm/glm.hpp>
+
+#include "GLResource.h"
 
 enum class TextureInternalFormat
 {
@@ -67,6 +69,9 @@ struct GLTextureResource
     void set_wrap_s(TextureWrap wrap);
     void set_wrap_t(TextureWrap wrap);
 };
+
+bool load_image_from_file(const std::filesystem::path& path, bool flip_vertically,
+                          bool flip_horizontally, sf::Image& out_image);
 
 struct Texture2D : public GLTextureResource
 {

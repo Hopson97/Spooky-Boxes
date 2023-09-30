@@ -29,15 +29,6 @@ struct GLResource
 
 // clang-format on
 
-struct GLVertexArray : public GLResource<&glCreateVertexArrays, &glDeleteVertexArrays>
-{
-    void bind()
-    {
-        assert(id);
-        glBindVertexArray(id);
-    }
-};
-
 struct GLFramebuffer : public GLResource<&glCreateFramebuffers, &glDeleteFramebuffers>
 {
     void bind()

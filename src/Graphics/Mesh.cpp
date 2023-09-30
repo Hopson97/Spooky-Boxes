@@ -1,4 +1,4 @@
-#include "MeshGeneration.h"
+#include "Mesh.h"
 
 #include <numeric>
 
@@ -13,9 +13,9 @@ Cool blue RGB:
 {0.2f, 0.5f, 0.5f},
 */
 
-Mesh generate_quad_mesh(float w, float h)
+BasicMesh generate_quad_mesh(float w, float h)
 {
-    Mesh mesh;
+    BasicMesh mesh;
     mesh.vertices = {{{w, h, 0.0f}, {0.0f, 1.0f}, {0, 0, 1}},
                      {{0, h, 0.0f}, {1.0f, 1.0f}, {0, 0, 1}},
                      {{0, 0, 0.0f}, {1.0f, 0.0f}, {0, 0, 1}},
@@ -28,9 +28,9 @@ Mesh generate_quad_mesh(float w, float h)
     return mesh;
 }
 
-Mesh generate_cube_mesh(const glm::vec3& dimensions)
+BasicMesh generate_cube_mesh(const glm::vec3& dimensions)
 {
-    Mesh mesh;
+    BasicMesh mesh;
 
     float w = dimensions.x;
     float h = dimensions.y;
@@ -85,11 +85,11 @@ Mesh generate_cube_mesh(const glm::vec3& dimensions)
     return mesh;
 }
 
-Mesh generate_terrain_mesh(int size)
+BasicMesh generate_terrain_mesh(int size)
 {
     float sizef = static_cast<float>(size);
 
-    Mesh mesh;
+    BasicMesh mesh;
     for (int z = 0; z < size; z++)
     {
         for (int x = 0; x < size; x++)
@@ -97,7 +97,7 @@ Mesh generate_terrain_mesh(int size)
             GLfloat fz = static_cast<GLfloat>(z);
             GLfloat fx = static_cast<GLfloat>(x);
 
-            Vertex vertex;
+            BasicVertex vertex;
             vertex.position.x = fx;
             vertex.position.y = 0.0f;
             vertex.position.z = fz;
