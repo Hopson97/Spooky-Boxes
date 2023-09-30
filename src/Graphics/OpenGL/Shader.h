@@ -11,8 +11,6 @@
 #include <unordered_map>
 #include <vector>
 
-namespace fs = std::filesystem;
-
 class Shader
 {
   public:
@@ -23,7 +21,8 @@ class Shader
     Shader& operator=(const Shader& other) = delete;
     ~Shader();
 
-    bool load_from_file(const fs::path& vertex_file_path, const fs::path& fragment_file_path);
+    bool load_from_file(const std::filesystem::path& vertex_file_path,
+                        const std::filesystem::path& fragment_file_path);
 
     void bind() const;
 

@@ -69,8 +69,8 @@ Shader::~Shader()
     glDeleteProgram(program_);
 }
 
-bool Shader::load_from_file(const fs::path& vertex_file_path,
-                            const fs::path& fragment_file_path)
+bool Shader::load_from_file(const std::filesystem::path& vertex_file_path,
+                            const std::filesystem::path& fragment_file_path)
 {
     // Load the files into strings and verify
     auto vertex_file_source = read_file_to_string(vertex_file_path);
