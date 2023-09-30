@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 #Set up project
 project(
-    ogl_template 
+    ogltemplate 
     VERSION 1.0
 )
 
@@ -18,6 +18,7 @@ add_executable(${PROJECT_NAME}
 
     src/Graphics/MeshGeneration.cpp
     src/Graphics/OpenGL/Shader.cpp
+    src/Graphics/OpenGL/Texture.cpp
     src/Graphics/OpenGL/GLDebugEnable.cpp
 )
 

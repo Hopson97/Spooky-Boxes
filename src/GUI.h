@@ -8,7 +8,7 @@
 namespace GUI
 {
 
-    void init(sf::Window* window);
+    bool init(sf::Window* window);
 
     void begin_frame();
 

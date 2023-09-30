@@ -1,7 +1,7 @@
 #pragma once
 
+#include <cassert>
 #include <glad/glad.h>
-#include <memory>
 
 // clang-format off
 /**
@@ -22,34 +22,18 @@ struct GLResource
     GLResource(const GLResource& other)             = delete;   
     GLResource& operator=(const GLResource& other)  = delete;   
 
-    GLResource& operator=(GLResource&& other) noexcept  { id = other.id;  other.id = 0; }   
+    GLResource& operator=(GLResource&& other) noexcept  { id = other.id;  other.id = 0; return *this; }   
     GLResource(GLResource&& other) noexcept  : id  (other.id){ other.id = 0; }   
 
 };
 
-template<int Target>
-struct GLTextureResource
-{
-    GLuint id;
-
-    GLTextureResource() { glCreateTextures(Target, 1, &id); }   
-    virtual ~GLTextureResource() { if(id != 0) glDeleteTextures(1, &id); }
-
-    GLTextureResource           (const GLTextureResource& other) = delete;  
-    GLTextureResource& operator=(const GLTextureResource& other) = delete;  
-
-    GLTextureResource& operator=(GLTextureResource&& other) noexcept { id = other.id;  other.id = 0; }   
-    GLTextureResource (GLTextureResource&& other) noexcept : id  (other.id){ other.id = 0; }   
-
-    void bind(GLuint unit) { assert(id); glBindTextureUnit(unit, id); }
-
-};
 // clang-format on
 
 struct GLVertexArray : public GLResource<&glCreateVertexArrays, &glDeleteVertexArrays>
 {
     void bind()
     {
+        assert(id);
         glBindVertexArray(id);
     }
 };
@@ -58,9 +42,21 @@ struct GLFramebuffer : public GLResource<&glCreateFramebuffers, &glDeleteFramebu
 {
     void bind()
     {
+        assert(id);
         glBindFramebuffer(GL_FRAMEBUFFER, id);
     }
 };
 
-using GLBuffer = GLResource<&glCreateBuffers, &glDeleteBuffers>;
-using GLTexture2D = GLTextureResource<GL_TEXTURE_2D>;
+struct GLBuffer : public GLResource<&glCreateFramebuffers, &glDeleteFramebuffers>
+{
+    enum class Target
+    {
+        ArrayBuffer = GL_ARRAY_BUFFER
+    };
+
+    void bind(Target target)
+    {
+        assert(id);
+        glBindBuffer(static_cast<GLenum>(target), id);
+    }
+};

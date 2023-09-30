@@ -13,6 +13,7 @@
 #include "Graphics/OpenGL/GLDebugEnable.h"
 #include "Graphics/OpenGL/GLResource.h"
 #include "Graphics/OpenGL/Shader.h"
+#include "Graphics/OpenGL/Texture.h"
 #include "Util.h"
 
 #include <imgui.h>
@@ -30,6 +31,25 @@ namespace
         GLBuffer vbo;
         GLBuffer ebo;
     };
+    struct Material
+    {
+        Texture2D colour_texture;
+        Texture2D specular_texture;
+
+        Material(const std::filesystem::path& colour_texture_path,
+                 const std::filesystem::path& specular_texture_path)
+        {
+            colour_texture.load_from_file(colour_texture_path, 8, true, false);
+            colour_texture.load_from_file(specular_texture_path, 8, true, false);
+        }
+
+        void bind()
+        {
+            colour_texture.bind(0);
+            colour_texture.bind(1);
+        }
+    };
+
     struct Transform
     {
         glm::vec3 position{0.0f};
@@ -149,7 +169,11 @@ int main()
     }
     glViewport(0, 0, 1600, 900);
     init_opengl_debugging();
-    GUI::init(&window);
+
+    if (!GUI::init(&window))
+    {
+        return -1;
+    }
 
     // ---------------------------
     // ==== Create the Meshes ====
@@ -208,45 +232,14 @@ int main()
     // ------------------------------------
     // ==== Create the OpenGL Textures ====
     // ------------------------------------
-    auto load_texture = [](const fs::path& path)
-    {
-        std::cout << "Loading texture " << path << '\n';
-        GLuint texture;
-        glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+    Material person_material("assets/textures/person.png",
+                             "assets/textures/person_specular.png");
 
-        // Load the texture from file
-        sf::Image image;
-        image.loadFromFile(path.string());
-        image.flipVertically();
-        auto w = image.getSize().x;
-        auto h = image.getSize().y;
-        auto data = image.getPixelsPtr();
+    Material grass_material("assets/textures/grass_03.png",
+                            "assets/textures/grass_specular.png");
 
-        // Set the storage
-        glTextureStorage2D(texture, 8, GL_RGBA8, w, h);
-        // glGenerateMipmap(GL_TEXTURE_2D);
-
-        // Upload the texture to the GPU to cover the whole created texture
-        glTextureSubImage2D(texture, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateTextureMipmap(texture);
-
-        // Set texture wrapping and min/mag filters
-        glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        return texture;
-    };
-
-    GLuint person_texture = load_texture("assets/textures/person.png");
-    GLuint person_specular = load_texture("assets/textures/person_specular.png");
-
-    GLuint grass_texture = load_texture("assets/textures/grass_03.png");
-    GLuint grass_specular = load_texture("assets/textures/grass_specular.png");
-
-    GLuint crate_texture = load_texture("assets/textures/crate.png");
-    GLuint crate_specular_texture = load_texture("assets/textures/crate_specular.png");
+    Material create_material("assets/textures/crate.png",
+                             "assets/textures/crate_specular.png");
 
     // ---------------------------------------
     // ==== Create the OpenGL Framebuffer ====
@@ -258,14 +251,9 @@ int main()
     glCreateFramebuffers(1, &fbo);
 
     // Attach the texture to the framebuffer
-    GLuint fbo_texture;
-    glCreateTextures(GL_TEXTURE_2D, 1, &fbo_texture);
-    glTextureStorage2D(fbo_texture, 1, GL_RGB8, fbo_x, fbo_y);
-
-    glTextureParameteri(fbo_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTextureParameteri(fbo_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, fbo_texture, 0);
+    Texture2D fbo_texture;
+    fbo_texture.create(fbo_x, fbo_y);
+    glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, fbo_texture.id, 0);
 
     // Attatch a render buffer to the frame buffer
     GLuint rbo;
@@ -386,12 +374,20 @@ int main()
         {
             GUI::event(window, e);
             if (e.type == sf::Event::Closed)
+            {
                 window.close();
+            }
             else if (e.type == sf::Event::KeyReleased)
+            {
                 if (e.key.code == sf::Keyboard::Escape)
+                {
                     window.close();
+                }
                 else if (e.key.code == sf::Keyboard::L)
+                {
                     mouse_locked = !mouse_locked;
+                }
+            }
         }
         if (!window.isOpen())
         {
@@ -549,13 +545,11 @@ int main()
         // Set the terrain trasform and render
         if (settings.grass)
         {
-            glBindTextureUnit(0, grass_texture);
-            glBindTextureUnit(1, grass_specular);
+            grass_material.bind();
         }
         else
         {
-            glBindTextureUnit(0, crate_texture);
-            glBindTextureUnit(1, crate_specular_texture);
+            create_material.bind();
         }
 
         scene_shader.set_uniform("model_matrix", terrain_mat);
@@ -563,8 +557,7 @@ int main()
         glDrawElements(GL_TRIANGLES, terrain_mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
 
         // Set the box transforms and render
-        glBindTextureUnit(0, crate_texture);
-        glBindTextureUnit(1, crate_specular_texture);
+        create_material.bind();
         box_vertex_array.vao.bind();
         for (auto& box_matrix : box_mats)
         {
@@ -573,8 +566,7 @@ int main()
         }
 
         // Draw billboards
-        glBindTextureUnit(0, person_texture);
-        glBindTextureUnit(1, person_specular);
+        person_material.bind();
         billboard_vertex_array.vao.bind();
         for (auto& transform : people_transforms)
         {
@@ -608,7 +600,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Bind the FBOs texture which will texture the screen quad
-        glBindTextureUnit(0, fbo_texture);
+        fbo_texture.bind(0);
         glBindVertexArray(fbo_vbo);
         fbo_shader.bind();
 
@@ -630,17 +622,6 @@ int main()
     // --------------------------
     GUI::shutdown();
 
-    // Delete all textures
-    glDeleteTextures(1, &person_texture);
-    glDeleteTextures(1, &person_specular);
-
-    glDeleteTextures(1, &crate_texture);
-    glDeleteTextures(1, &crate_specular_texture);
-
-    glDeleteTextures(1, &grass_texture);
-    glDeleteTextures(1, &grass_specular);
-
     // Delete all framebuffers...
     glDeleteFramebuffers(1, &fbo);
-    glDeleteFramebuffers(1, &fbo_texture);
 }

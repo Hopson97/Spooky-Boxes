@@ -23,14 +23,24 @@ namespace
         ImGui::SliderFloat("Attenuation Quadratic", &attenuation.exponant, 0.000007f, 0.03f,
                            "%.6f");
     }
-}
+} // namespace
 
 namespace GUI
 {
-    void init(sf::Window* window)
+    bool init(sf::Window* window)
     {
-        ImGui::SFML::Init(*window, cast_vector<float>(window->getSize()));
-        ImGui_ImplOpenGL3_Init();
+        if (!ImGui::SFML::Init(*window, cast_vector<float>(window->getSize())))
+        {
+            std::cout << "Failed to init SFML Imgui.\n";
+            return false;
+        }
+
+        if (!ImGui_ImplOpenGL3_Init())
+        {
+            std::cout << "Failed to init SFML Imgui.\n";
+            return false;
+        }
+        return true;
     }
 
     void begin_frame()
