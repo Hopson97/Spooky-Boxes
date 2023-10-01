@@ -24,6 +24,7 @@ struct Settings
         spot_light.att.constant = 0.2f;
         spot_light.att.linear = 0.016f;
         spot_light.att.exponant = 0.003f;
+        spot_light.cutoff = 50.0f;
     }
     DirectionalLight dir_light;
     PointLight point_light;

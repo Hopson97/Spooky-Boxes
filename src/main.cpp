@@ -16,6 +16,7 @@
 #include "Graphics/OpenGL/Shader.h"
 #include "Graphics/OpenGL/Texture.h"
 #include "Graphics/OpenGL/VertexArray.h"
+#include "Maths.h"
 #include "Util.h"
 
 #include <imgui.h>
@@ -43,12 +44,6 @@ namespace
             colour_texture.bind(0);
             specular_texture.bind(1);
         }
-    };
-
-    struct Transform
-    {
-        glm::vec3 position{0.0f};
-        glm::vec3 rotation{0.0f};
     };
 
     template <int Ticks>
@@ -79,35 +74,24 @@ namespace
 
     glm::vec3 get_keyboard_input(const Transform& transform, bool flying)
     {
-
-        auto x_rot = glm::radians(transform.rotation.x);
-        auto y_rot = glm::radians(transform.rotation.y);
-        auto y_rot90 = glm::radians(transform.rotation.y + 90);
-
         // Keyboard Input
         glm::vec3 move{0.0f};
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
         {
-            move +=
-                glm::vec3{glm::cos(y_rot) * glm::cos(x_rot), flying ? glm::sin(x_rot) : 0.0f,
-                          glm::cos(x_rot) * glm::sin(y_rot)};
+            move += forward_vector(transform.rotation);
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
         {
-            move -=
-                glm::vec3{glm::cos(y_rot) * glm::cos(x_rot), flying ? glm::sin(x_rot) : 0.0f,
-                          glm::cos(x_rot) * glm::sin(y_rot)};
+            move += backward_vector(transform.rotation);
         }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
         {
-            move += glm::vec3{-glm::cos(y_rot90), 0, -glm::sin(y_rot90)};
+            move += left_vector(transform.rotation);
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
         {
-            move -= glm::vec3{-glm::cos(y_rot90), 0, -glm::sin(y_rot90)
-
-            };
+            move += right_vector(transform.rotation);
         }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
@@ -252,9 +236,7 @@ int main()
     light_transform.position = {20.0f, 5.0f, 20.0f};
 
     glm::mat4 camera_projection =
-        glm::perspective(glm::radians(75.0f), 1600.0f / 900.0f, 1.0f, 256.0f);
-    glm::vec3 up = {0, 1, 0};
-
+        create_projection_matrix(window.getSize().x, window.getSize().y, 75.0f);
     // ----------------------------
     // ==== Load sound effects ====
     // ----------------------------
@@ -381,7 +363,7 @@ int main()
         // ==== Transform Calculations ====
         // -------------------------------
         // View/ Camera matrix
-        glm::mat4 view_matrix{1.0f};
+        glm::mat4 view_matrix = create_view_matrix(camera_transform, {0.0f, 1.0f, 0.0f});
         auto x_rot = glm::radians(camera_transform.rotation.x);
         auto y_rot = glm::radians(camera_transform.rotation.y);
         glm::vec3 front = {
@@ -389,22 +371,7 @@ int main()
             glm::sin(x_rot),
             glm::sin(y_rot) * glm::cos(x_rot),
         };
-        glm::vec3 centre = camera_transform.position + glm::normalize(front);
-
-        view_matrix = glm::lookAt(camera_transform.position, centre, up);
-
-        // Model matrices
-        auto create_model_matrix = [](const Transform& transform)
-        {
-            glm::mat4 mat{1.0f};
-            mat = glm::translate(mat, transform.position);
-            mat = glm::rotate(mat, glm::radians(transform.rotation.x), {1, 0, 0});
-            mat = glm::rotate(mat, glm::radians(transform.rotation.y), {0, 1, 0});
-            mat = glm::rotate(mat, glm::radians(transform.rotation.z), {0, 0, 1});
-
-            return mat;
-        };
-
+        // Model matrices...
         auto terrain_mat = create_model_matrix(terrain_transform);
         auto light_mat = create_model_matrix(light_transform);
 
@@ -467,7 +434,6 @@ int main()
         scene_shader.set_uniform("spot_light.direction",    front);
         upload_base_light(scene_shader,                     settings.spot_light, "spot_light");
         upload_attenuation(scene_shader,                    settings.spot_light.att, "spot_light");
-
         // clang-format on
 
         scene_shader.set_uniform("is_light", false);
