@@ -97,5 +97,11 @@ bool Texture2D::load_from_file(const std::filesystem::path& path, GLsizei levels
     set_mag_filter(TextureMagFilter::Linear);
     set_wrap_s(TextureWrap::Repeat);
     set_wrap_t(TextureWrap::Repeat);
+    is_loaded_ = true;
     return true;
+}
+
+bool Texture2D::is_loaded() const
+{
+    return is_loaded_;
 }

@@ -82,4 +82,9 @@ struct Texture2D : public GLTextureResource
                         bool flip_vertically, bool flip_horizontally,
                         TextureInternalFormat internal_format = TextureInternalFormat::RGBA,
                         TextureFormat format = TextureFormat::RGBA8);
+
+    bool is_loaded() const;
+
+  private:
+    bool is_loaded_ = false;
 };
