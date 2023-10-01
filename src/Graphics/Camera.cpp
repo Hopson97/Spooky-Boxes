@@ -8,15 +8,8 @@ PerspectiveCamera::PerspectiveCamera(unsigned width, unsigned height, float fov)
 
 void PerspectiveCamera::update()
 {
-    auto x_rot = glm::radians(transform.rotation.x);
-    auto y_rot = glm::radians(transform.rotation.y);
-    forwards_ = {
-        glm::cos(y_rot) * glm::cos(x_rot),
-        glm::sin(x_rot),
-        glm::sin(y_rot) * glm::cos(x_rot),
-    };
+    forwards_ = forward_vector(transform.rotation);
     glm::vec3 centre = transform.position + glm::normalize(forwards_);
-
     view_matrix_ = glm::lookAt(transform.position, centre, {0, 1, 0});
 }
 

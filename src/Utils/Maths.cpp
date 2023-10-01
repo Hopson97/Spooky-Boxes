@@ -11,6 +11,7 @@ glm::mat4 create_model_matrix(const Transform& transform)
     matrix = glm::rotate(matrix, glm::radians(transform.rotation.z), {0, 0, 1});
     return matrix;
 }
+
 glm::vec3 forward_vector(const glm::vec3& rotation)
 {
     float yaw = glm::radians(rotation.y);
