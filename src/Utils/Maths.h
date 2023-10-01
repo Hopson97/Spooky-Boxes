@@ -13,9 +13,6 @@ struct Transform
 };
 
 glm::mat4 create_model_matrix(const Transform& transform);
-glm::mat4 create_view_matrix(const Transform& transform, const glm::vec3& up);
-glm::mat4 create_projection_matrix(unsigned width, unsigned height, float fov);
-
 glm::vec3 forward_vector(const glm::vec3& rotation);
 glm::vec3 backward_vector(const glm::vec3& rotation);
 glm::vec3 left_vector(const glm::vec3& rotation);

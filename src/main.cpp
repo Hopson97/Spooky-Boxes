@@ -12,6 +12,7 @@
 #include <imgui.h>
 
 #include "GUI.h"
+#include "Graphics/Camera.h"
 #include "Graphics/Lights.h"
 #include "Graphics/Mesh.h"
 #include "Graphics/OpenGL/Framebuffer.h"
@@ -207,7 +208,6 @@ int main()
     // -----------------------------------
     // ==== Entity Transform Creation ====
     // -----------------------------------
-    Transform camera_transform;
     Transform terrain_transform;
     Transform light_transform;
     std::vector<Transform> box_transforms;
@@ -229,12 +229,12 @@ int main()
         people_transforms.push_back({{x, 0.0f, z}, {0.0f, 0.0, 0}});
     }
 
-    camera_transform.position = {80.0f, 1.0f, 35.0f};
-    camera_transform.rotation = {0.0f, 201.0f, 0.0f};
     light_transform.position = {20.0f, 5.0f, 20.0f};
 
-    glm::mat4 camera_projection =
-        create_projection_matrix(window.getSize().x, window.getSize().y, 75.0f);
+    PerspectiveCamera camera(window.getSize().x, window.getSize().y, 75.0f);
+    camera.transform.position = {80.0f, 1.0f, 35.0f};
+    camera.transform.rotation = {0.0f, 201.0f, 0.0f};
+
     // ----------------------------
     // ==== Load sound effects ====
     // ----------------------------
@@ -310,12 +310,12 @@ int main()
         // ==== Input ====
         // ---------------
         auto SPEED = 5.0f;
-        auto translate = get_keyboard_input(camera_transform, true) * SPEED;
+        auto translate = get_keyboard_input(camera.transform, true) * SPEED;
 
         if (!mouse_locked)
         {
             window.setMouseCursorVisible(false);
-            get_mouse_move_input(camera_transform, window);
+            get_mouse_move_input(camera.transform, window);
         }
         else
         {
@@ -327,7 +327,7 @@ int main()
         // ------------------------
         // Walking sound effects
         if ((std::abs(translate.x + translate.y + translate.z) > 0) &&
-            camera_transform.position.y > 0.5 && camera_transform.position.y < 1.5)
+            camera.transform.position.y > 0.5 && camera.transform.position.y < 1.5)
         {
             if (walk_sounds[sound_idx].getStatus() != sf::Sound::Status::Playing)
             {
@@ -347,7 +347,7 @@ int main()
         time_step.update(
             [&](auto dt)
             {
-                camera_transform.position += translate * dt.asSeconds();
+                camera.transform.position += translate * dt.asSeconds();
 
                 light_transform.position.x +=
                     glm::sin(game_time_now.asSeconds() * 0.55f) * dt.asSeconds() * 3.0f;
@@ -361,14 +361,7 @@ int main()
         // ==== Transform Calculations ====
         // -------------------------------
         // View/ Camera matrix
-        glm::mat4 view_matrix = create_view_matrix(camera_transform, {0.0f, 1.0f, 0.0f});
-        auto x_rot = glm::radians(camera_transform.rotation.x);
-        auto y_rot = glm::radians(camera_transform.rotation.y);
-        glm::vec3 front = {
-            glm::cos(y_rot) * glm::cos(x_rot),
-            glm::sin(x_rot),
-            glm::sin(y_rot) * glm::cos(x_rot),
-        };
+        camera.update();
         // Model matrices...
         auto terrain_mat = create_model_matrix(terrain_transform);
         auto light_mat = create_model_matrix(light_transform);
@@ -391,10 +384,10 @@ int main()
         // Set the shader states
         //......................
         scene_shader.bind();
-        scene_shader.set_uniform("projection_matrix", camera_projection);
-        scene_shader.set_uniform("view_matrix", view_matrix);
+        scene_shader.set_uniform("projection_matrix", camera.get_projection());
+        scene_shader.set_uniform("view_matrix", camera.get_view_matrix());
 
-        scene_shader.set_uniform("eye_position", camera_transform.position);
+        scene_shader.set_uniform("eye_position", camera.transform.position);
 
         scene_shader.set_uniform("material.diffuse0", 0);
         scene_shader.set_uniform("material.specular0", 1);
@@ -428,8 +421,8 @@ int main()
 
         // Set the spot light shader uniforms
         scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.spot_light.cutoff)));
-        scene_shader.set_uniform("spot_light.position",     camera_transform.position);
-        scene_shader.set_uniform("spot_light.direction",    front);
+        scene_shader.set_uniform("spot_light.position",     camera.transform.position);
+        scene_shader.set_uniform("spot_light.direction",    camera.get_forwards());
         upload_base_light(scene_shader,                     settings.spot_light, "spot_light");
         upload_attenuation(scene_shader,                    settings.spot_light.att, "spot_light");
         // clang-format on
@@ -467,8 +460,8 @@ int main()
 
             // Draw billboard
             auto pi = static_cast<float>(std::numbers::pi);
-            auto xd = transform.position.x - camera_transform.position.x;
-            auto yd = transform.position.z - camera_transform.position.z;
+            auto xd = transform.position.x - camera.transform.position.x;
+            auto yd = transform.position.z - camera.transform.position.z;
 
             float r = std::atan2(xd, yd) + pi;
 
@@ -506,7 +499,7 @@ int main()
         // ==== End Frame ====
         // --------------------------
         // ImGui::ShowDemoWindow();
-        GUI::debug_window(camera_transform.position, camera_transform.rotation, settings);
+        GUI::debug_window(camera.transform.position, camera.transform.rotation, settings);
 
         GUI::render();
         window.display();

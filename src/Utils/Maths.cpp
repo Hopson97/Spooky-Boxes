@@ -11,27 +11,6 @@ glm::mat4 create_model_matrix(const Transform& transform)
     matrix = glm::rotate(matrix, glm::radians(transform.rotation.z), {0, 0, 1});
     return matrix;
 }
-
-glm::mat4 create_view_matrix(const Transform& transform, const glm::vec3& up)
-{
-    auto x_rot = glm::radians(transform.rotation.x);
-    auto y_rot = glm::radians(transform.rotation.y);
-    glm::vec3 front = {
-        glm::cos(y_rot) * glm::cos(x_rot),
-        glm::sin(x_rot),
-        glm::sin(y_rot) * glm::cos(x_rot),
-    };
-    glm::vec3 centre = transform.position + glm::normalize(front);
-
-    return glm::lookAt(transform.position, centre, up);
-}
-
-glm::mat4 create_projection_matrix(unsigned width, unsigned height, float fov)
-{
-    auto aspect = static_cast<float>(width) / static_cast<float>(height);
-    return glm::perspective(glm::radians(fov), aspect, 0.5f, 500.0f);
-}
-
 glm::vec3 forward_vector(const glm::vec3& rotation)
 {
     float yaw = glm::radians(rotation.y);
