@@ -1,23 +1,8 @@
-# OpenGL Spooky Scene
+# SFML-OpenGL-Template
 
-A """Spooky""" scene made with OpenGL, aka just some dramatic lighting and a bunch of creepy billboards.
+A template for creating OpenGL applications using SFML, including ImGui and Assimp.
 
-This was made as reference on how to use OpenGL 4.5 (direct state access) to do lighting effects, framebuffers, billboarding, and model loading. For this reason, the majority of the code is in main.cpp in a procedural style to keep it as simple as possible.
-
-The model is not included in the repo to reduce the size, (and is not actually required) but it can be downloaded from [sketchfab](https://learnopengl.com/data/models/backpack.zip) and placing it in the `assets/models` directory. The original can also downloaded in other formats [here](https://sketchfab.com/3d-models/survival-guitar-backpack-799f8c4511f84fab8c3f12887f7e6b36).
-
-The majority of project was learned from the following:
-
-- [LearnOpenGL](https://learnopengl.com/)
-- [OGLDev](https://www.ogldev.org/)
-- [Guide to Modern OpenGL Functions](https://github.com/fendevel/Guide-to-Modern-OpenGL-Functions)-
-- [OpenGL 4.6 Examples](https://github.com/rtryan98/OpenGL)
-
-## Screenshots
-
-![Screenshot 1](assets/screenshots/1.png)
-![Screenshot 2](assets/screenshots/2.png)
-![Screenshot 3](assets/screenshots/3.png)
+This has RAII wrappers around the OpenGL objects such as VAOs, VBOs, and Shaders which makes it a lot easier to use OpenGL.
 
 ## Building and Running
 
