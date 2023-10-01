@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 #Set up project
 project(
-    ogltemplate 
+    ogl_template 
     VERSION 1.0
 )
 
@@ -17,9 +17,10 @@ add_executable(${PROJECT_NAME}
     src/Util.cpp
 
     src/Graphics/Mesh.cpp
+    src/Graphics/OpenGL/Framebuffer.cpp
+    src/Graphics/OpenGL/GLDebugEnable.cpp
     src/Graphics/OpenGL/Shader.cpp
     src/Graphics/OpenGL/Texture.cpp
-    src/Graphics/OpenGL/GLDebugEnable.cpp
     src/Graphics/OpenGL/VertexArray.cpp
 )
 
