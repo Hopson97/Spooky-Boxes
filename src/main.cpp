@@ -264,8 +264,8 @@ int main()
     sf::Music ambient_night1;
     sf::Music ambient_night2;
     sf::Music spookysphere;
-    create_looping_bg(ambient_night1, "assets/sounds/crickets.ogg", 50, 0);
-    create_looping_bg(ambient_night2, "assets/sounds/crickets.ogg", 50, 5);
+    create_looping_bg(ambient_night1, "assets/sounds/crickets.ogg", 25, 0);
+    create_looping_bg(ambient_night2, "assets/sounds/crickets.ogg", 10, 2);
     create_looping_bg(spookysphere, "assets/sounds/Atmosphere_003(Loop).wav", 10, 0);
 
     // -------------------
