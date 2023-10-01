@@ -4,7 +4,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 
-#include "../../Util.h"
+#include "../../Utils/Util.h"
 
 namespace
 {

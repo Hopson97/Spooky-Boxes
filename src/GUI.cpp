@@ -4,7 +4,7 @@
 #include <imgui_sfml/imgui-SFML.h>
 #include <imgui_sfml/imgui_impl_opengl3.h>
 
-#include "Util.h"
+#include "Utils/Util.h"
 
 namespace
 {

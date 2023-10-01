@@ -8,8 +8,6 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-#include "../Util.h"
-
 struct BasicVertex
 {
     glm::vec3 position{0.0f};

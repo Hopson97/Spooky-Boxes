@@ -14,9 +14,9 @@ conan_basic_setup()
 add_executable(${PROJECT_NAME}     
     src/main.cpp
     src/GUI.cpp
-    src/Maths.cpp
-    src/Util.cpp
 
+    src/Utils/Maths.cpp
+    src/Utils/Util.cpp
     src/Graphics/Mesh.cpp
     src/Graphics/OpenGL/Framebuffer.cpp
     src/Graphics/OpenGL/GLDebugEnable.cpp

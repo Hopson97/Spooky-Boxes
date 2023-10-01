@@ -1,11 +1,15 @@
 #include <array>
 #include <numbers>
 
+#include <SFML/Audio/Music.hpp>
+#include <SFML/Audio/Sound.hpp>
+#include <SFML/Audio/SoundBuffer.hpp>
 #include <SFML/Graphics/Image.hpp>
 #include <SFML/Window/Event.hpp>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <imgui.h>
 
 #include "GUI.h"
 #include "Graphics/Lights.h"
@@ -16,14 +20,8 @@
 #include "Graphics/OpenGL/Shader.h"
 #include "Graphics/OpenGL/Texture.h"
 #include "Graphics/OpenGL/VertexArray.h"
-#include "Maths.h"
-#include "Util.h"
-
-#include <imgui.h>
-
-#include <SFML/Audio/Music.hpp>
-#include <SFML/Audio/Sound.hpp>
-#include <SFML/Audio/SoundBuffer.hpp>
+#include "Utils/Maths.h"
+#include "Utils/Util.h"
 
 namespace
 {
