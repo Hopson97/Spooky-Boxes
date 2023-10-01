@@ -5,13 +5,7 @@
 #include "../Mesh.h"
 #include <vector>
 
-struct VAODrawData
-{
-    GLuint id;
-    GLsizei indices_;
-};
-
-struct VertexArray : public GLResource<&glCreateVertexArrays, &glDeleteVertexArrays>
+struct VertexArray : public GLResource<glCreateVertexArrays, glDeleteVertexArrays>
 {
     VertexArray() = default;
     VertexArray(const BasicMesh& mesh);
@@ -23,5 +17,5 @@ struct VertexArray : public GLResource<&glCreateVertexArrays, &glDeleteVertexArr
 
   private:
     std::vector<GLBuffer> buffers_;
-    GLuint indices_;
+    GLuint indices_ = 0;
 };

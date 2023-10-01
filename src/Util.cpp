@@ -9,7 +9,7 @@ std::string read_file_to_string(const std::filesystem::path& file_path)
 
     if (!in_file)
     {
-        std::cout << "Failed to open file " << file_path << std::endl;
+        std::cerr << "Failed to open file " << file_path << std::endl;
         return "";
     }
 

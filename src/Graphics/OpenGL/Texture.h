@@ -48,7 +48,7 @@ enum class TextureWrap
 // clang-format off
 struct GLTextureResource
 {
-    GLuint id;
+    GLuint id = 0;
 
     GLTextureResource(GLenum target) { glCreateTextures(target, 1, &id); }   
     virtual ~GLTextureResource() { if(id != 0) glDeleteTextures(1, &id); }
@@ -59,7 +59,7 @@ struct GLTextureResource
     GLTextureResource& operator=(GLTextureResource&& other) noexcept { id = other.id;  other.id = 0; return *this; }   
     GLTextureResource (GLTextureResource&& other) noexcept : id  (other.id){ other.id = 0; }   
 
-    void bind(GLuint unit) { assert(id); glBindTextureUnit(unit, id); }
+    void bind(GLuint unit) const { assert(id); glBindTextureUnit(unit, id); }
     // clang-format on
 
     void set_min_filter(TextureMinFilter filter);

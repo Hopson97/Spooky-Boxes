@@ -14,9 +14,9 @@ void VertexArray::bind() const
 void VertexArray::buffer_mesh(const BasicMesh& mesh)
 {
     assert(id);
-
     GLBuffer vbo;
     GLBuffer ebo;
+    indices_ = mesh.indices.size();
 
     // Element buffer
     glNamedBufferStorage(ebo.id, mesh.indices.size() * sizeof(GLuint), mesh.indices.data(),
@@ -51,5 +51,6 @@ void VertexArray::buffer_mesh(const BasicMesh& mesh)
 
 void VertexArray::draw()
 {
+    assert(indices_ > 0);
     glDrawElements(GL_TRIANGLES, indices_, GL_UNSIGNED_INT, nullptr);
 }

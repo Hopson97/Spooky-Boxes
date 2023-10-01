@@ -10,6 +10,7 @@
 #include "GUI.h"
 #include "Graphics/Lights.h"
 #include "Graphics/Mesh.h"
+#include "Graphics/OpenGL/Framebuffer.h"
 #include "Graphics/OpenGL/GLDebugEnable.h"
 #include "Graphics/OpenGL/GLResource.h"
 #include "Graphics/OpenGL/Shader.h"
@@ -34,13 +35,13 @@ namespace
                  const std::filesystem::path& specular_texture_path)
         {
             colour_texture.load_from_file(colour_texture_path, 8, true, false);
-            colour_texture.load_from_file(specular_texture_path, 8, true, false);
+            specular_texture.load_from_file(specular_texture_path, 8, true, false);
         }
 
         void bind()
         {
             colour_texture.bind(0);
-            colour_texture.bind(1);
+            specular_texture.bind(1);
         }
     };
 
@@ -150,7 +151,7 @@ int main()
     context_settings.minorVersion = 5;
     context_settings.attributeFlags = sf::ContextSettings::Core;
 
-    sf::Window window({1600, 900}, "SpookyGL", sf::Style::Default, context_settings);
+    sf::Window window({1600, 900}, "g", sf::Style::Default, context_settings);
     window.setVerticalSyncEnabled(true);
     bool mouse_locked = false;
 
@@ -161,7 +162,7 @@ int main()
         std::cerr << "Failed to init OpenGL - Is OpenGL linked correctly?\n";
         return -1;
     }
-    glViewport(0, 0, 1600, 900);
+    glViewport(0, 0, window.getSize().x, window.getSize().y);
     init_opengl_debugging();
 
     if (!GUI::init(&window))
@@ -182,7 +183,6 @@ int main()
     // ------------------------------------
     Material person_material("assets/textures/person.png",
                              "assets/textures/person_specular.png");
-
     Material grass_material("assets/textures/grass_03.png",
                             "assets/textures/grass_specular.png");
 
@@ -192,27 +192,10 @@ int main()
     // ---------------------------------------
     // ==== Create the OpenGL Framebuffer ====
     // ---------------------------------------
-    std::cout << "Creating framebuffer\n";
-    auto fbo_x = window.getSize().x;
-    auto fbo_y = window.getSize().y;
-    GLuint fbo;
-    glCreateFramebuffers(1, &fbo);
-
-    // Attach the texture to the framebuffer
-    Texture2D fbo_texture;
-    fbo_texture.create(fbo_x, fbo_y);
-    glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, fbo_texture.id, 0);
-
-    // Attatch a render buffer to the frame buffer
-    GLuint rbo;
-    glCreateRenderbuffers(1, &rbo);
-    glNamedRenderbufferStorage(rbo, GL_DEPTH24_STENCIL8, fbo_x, fbo_y);
-    glNamedFramebufferRenderbuffer(fbo, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
-
-    if (auto status =
-            glCheckNamedFramebufferStatus(fbo, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    Framebuffer fbo(window.getSize().x, window.getSize().y);
+    fbo.attach_colour().attach_renderbuffer();
+    if (!fbo.is_complete())
     {
-        std::cerr << "Framebuffer incomplete. Status: " << status << '\n';
         return -1;
     }
 
@@ -435,8 +418,7 @@ int main()
         // ==== Render to FBO ====
         // -----------------------
         // Set the framebuffer as the render target and clear
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        fbo.bind();
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
@@ -524,7 +506,7 @@ int main()
             auto xd = transform.position.x - camera_transform.position.x;
             auto yd = transform.position.z - camera_transform.position.z;
 
-            auto r = std::atan2(xd, yd) + pi;
+            float r = std::atan2(xd, yd) + pi;
 
             glm::mat4 billboard_mat{1.0f};
             billboard_mat = glm::translate(billboard_mat, transform.position);
@@ -546,9 +528,10 @@ int main()
         // --------------------------
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glViewport(0, 0, window.getSize().x, window.getSize().y);
 
         // Bind the FBOs texture which will texture the screen quad
-        fbo_texture.bind(0);
+        fbo.bind_colour_attachment(0, 0);
         glBindVertexArray(fbo_vbo);
         fbo_shader.bind();
 
@@ -569,7 +552,4 @@ int main()
     // ==== Graceful Cleanup ====
     // --------------------------
     GUI::shutdown();
-
-    // Delete all framebuffers...
-    glDeleteFramebuffers(1, &fbo);
 }

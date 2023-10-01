@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cassert>
+#include <iostream>
+
 #include <glad/glad.h>
 
 // clang-format off
@@ -11,34 +13,25 @@
  * @tparam CreateFunction Function to create an OpenGL object (eg &glCreateVertexArrays)
  * @tparam DeleteFunction Function to delete an OpenGL object (eg &glCreateVertexArrays) 
  */
-template<auto CreateFunction, auto DeleteFunction>
+template<auto& CreateFunction, auto& DeleteFunction>
 struct GLResource
 {
-    GLuint id;
+    GLuint id = 0;
 
-    GLResource() { (*CreateFunction)(1, &id); }
-    virtual ~GLResource() { if(id != 0) (*DeleteFunction)(1, &id);   }
+    GLResource() { (*CreateFunction)(1, &id);}
+    virtual ~GLResource() { destroy(); }
 
     GLResource(const GLResource& other)             = delete;   
     GLResource& operator=(const GLResource& other)  = delete;   
 
-    GLResource& operator=(GLResource&& other) noexcept  { id = other.id;  other.id = 0; return *this; }   
-    GLResource(GLResource&& other) noexcept  : id  (other.id){ other.id = 0; }   
+    GLResource& operator=(GLResource&& other) noexcept  { destroy(); id = other.id;  other.id = 0; return *this; }   
+    GLResource(GLResource&& other) noexcept  : id  (other.id){ other.id = 0; }
 
+    void destroy() { if(id != 0) {(*DeleteFunction)(1, &id); id = 0; } }
 };
 
 // clang-format on
-
-struct GLFramebuffer : public GLResource<&glCreateFramebuffers, &glDeleteFramebuffers>
-{
-    void bind()
-    {
-        assert(id);
-        glBindFramebuffer(GL_FRAMEBUFFER, id);
-    }
-};
-
-struct GLBuffer : public GLResource<&glCreateFramebuffers, &glDeleteFramebuffers>
+struct GLBuffer : public GLResource<glCreateBuffers, glDeleteBuffers>
 {
     enum class Target
     {

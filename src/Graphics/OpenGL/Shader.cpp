@@ -22,7 +22,7 @@ namespace
         }
         else
         {
-            std::cout << "Unkown verify type for action '" << action << "'\n";
+            std::cerr << "Unkown verify type for action '" << action << "'\n";
         }
 
         if (status == GL_FALSE)
@@ -41,7 +41,7 @@ namespace
 
             std::string buffer(length + 1, ' ');
             glGetShaderInfoLog(shader, 1024, NULL, buffer.data());
-            std::cout << "Failed to " << action << " shader :\n" << buffer << std::endl;
+            std::cerr << "Failed to " << action << " shader :\n" << buffer << std::endl;
             return false;
         }
         return true;
