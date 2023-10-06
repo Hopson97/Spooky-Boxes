@@ -28,7 +28,7 @@ BasicMesh generate_quad_mesh(float w, float h)
     return mesh;
 }
 
-BasicMesh generate_cube_mesh(const glm::vec3& dimensions)
+BasicMesh generate_cube_mesh(const glm::vec3& dimensions, bool repeat_texture)
 {
     BasicMesh mesh;
 
@@ -36,37 +36,40 @@ BasicMesh generate_cube_mesh(const glm::vec3& dimensions)
     float h = dimensions.y;
     float d = dimensions.z;
 
+    float txrx = repeat_texture ? w : 1.0f;
+    float txry = repeat_texture ? h : 1.0f;
+
     // clang-format off
     mesh.vertices = {
-        {{w, h, d}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},  
+        {{w, h, d}, {txrx, 0.0f}, {0.0f, 0.0f, 1.0f}},  
         {{0, h, d}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-        {{0, 0, d}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},  
-        {{w, 0, d}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
+        {{0, 0, d}, {0.0f, txry}, {0.0f, 0.0f, 1.0f}},  
+        {{w, 0, d}, {txrx, txry}, {0.0f, 0.0f, 1.0f}},
 
-        {{0, h, d}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}}, 
+        {{0, h, d}, {txrx, 0.0f}, {-1.0f, 0.0f, 0.0f}}, 
         {{0, h, 0}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
-        {{0, 0, 0}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}}, 
-        {{0, 0, d}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
+        {{0, 0, 0}, {0.0f, txry}, {-1.0f, 0.0f, 0.0f}}, 
+        {{0, 0, d}, {txrx, txry}, {-1.0f, 0.0f, 0.0f}},
 
-        {{0, h, 0}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}}, 
+        {{0, h, 0}, {txrx, 0.0f}, {0.0f, 0.0f, -1.0f}}, 
         {{w, h, 0}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-        {{w, 0, 0}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}, 
-        {{0, 0, 0}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
+        {{w, 0, 0}, {0.0f, txry}, {0.0f, 0.0f, -1.0f}}, 
+        {{0, 0, 0}, {txrx, txry}, {0.0f, 0.0f, -1.0f}},
 
-        {{w, h, 0}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},  
+        {{w, h, 0}, {txrx, 0.0f}, {1.0f, 0.0f, 0.0f}},  
         {{w, h, d}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-        {{w, 0, d}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},  
-        {{w, 0, 0}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+        {{w, 0, d}, {0.0f, txry}, {1.0f, 0.0f, 0.0f}},  
+        {{w, 0, 0}, {txrx, txry}, {1.0f, 0.0f, 0.0f}},
 
-        {{w, h, 0}, {1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},  
+        {{w, h, 0}, {txrx, 0.0f}, {0.0f, 1.0f, 0.0f}},  
         {{0, h, 0}, {0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-        {{0, h, d}, {0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},  
-        {{w, h, d}, {1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
+        {{0, h, d}, {0.0f, txry}, {0.0f, 1.0f, 0.0f}},  
+        {{w, h, d}, {txrx, txry}, {0.0f, 1.0f, 0.0f}},
 
-        {{0, 0, 0}, {1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}}, 
+        {{0, 0, 0}, {txrx, 0.0f}, {0.0f, -1.0f, 0.0f}}, 
         {{w, 0, 0}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
-        {{w, 0, d}, {0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}}, 
-        {{0, 0, d}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
+        {{w, 0, d}, {0.0f, txry}, {0.0f, -1.0f, 0.0f}}, 
+        {{0, 0, d}, {txrx, txry}, {0.0f, -1.0f, 0.0f}},
     };
     // clang-format on
 

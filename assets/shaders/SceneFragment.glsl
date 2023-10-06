@@ -1,10 +1,12 @@
 #version 450 core
 
+#define MAX_LIGHTS 32
+
+layout (location = 0) out vec4 out_colour;
+
 in vec2 pass_texture_coord;
 in vec3 pass_normal;
 in vec3 pass_fragment_coord;
-
-out vec4 out_colour;
 
 struct Material 
 {
@@ -53,11 +55,14 @@ struct SpotLight
 
 uniform Material material;
 uniform DirectionalLight dir_light;
-uniform PointLight point_light;
 uniform SpotLight spot_light;
+uniform PointLight point_lights[MAX_LIGHTS];
+uniform int light_count;
 
 uniform bool is_light;
 uniform vec3 eye_position;
+
+
 
 /**
     Calculates the base lighting 
@@ -151,7 +156,10 @@ void main()
 
     vec3 total_light = vec3(0, 0, 0);
     total_light += calculate_directional_light(dir_light, normal, eye_direction);
-    total_light += calculate_point_light(point_light, normal, eye_direction);
+
+    for (int i = 0; i < light_count; i++) {
+        total_light += calculate_point_light(point_lights[i], normal, eye_direction);
+    }
     total_light += calculate_spot_light(spot_light, normal, eye_direction);
 
     out_colour *= vec4(total_light, 1.0);

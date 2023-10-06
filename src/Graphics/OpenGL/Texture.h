@@ -18,6 +18,7 @@ enum class TextureFormat
 {
     RGB8 = GL_RGB8,
     RGBA8 = GL_RGBA8,
+    RGBA16F = GL_RGBA16F
 };
 
 enum class TextureMinFilter
@@ -76,7 +77,7 @@ struct Texture2D : public GLTextureResource
     Texture2D();
 
     GLuint create(GLsizei width, GLsizei height, GLsizei levels = 1,
-                  TextureFormat internal_format = TextureFormat::RGB8);
+                  TextureFormat format = TextureFormat::RGB8);
 
     bool load_from_file(const std::filesystem::path& path, GLsizei levels,
                         bool flip_vertically, bool flip_horizontally,

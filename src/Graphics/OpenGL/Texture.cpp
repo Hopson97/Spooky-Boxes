@@ -61,10 +61,9 @@ Texture2D::Texture2D()
 {
 }
 
-GLuint Texture2D::create(GLsizei width, GLsizei height, GLsizei levels,
-                         TextureFormat internal_format)
+GLuint Texture2D::create(GLsizei width, GLsizei height, GLsizei levels, TextureFormat format)
 {
-    glTextureStorage2D(id, levels, static_cast<GLenum>(internal_format), width, height);
+    glTextureStorage2D(id, levels, static_cast<GLenum>(format), width, height);
 
     set_min_filter(TextureMinFilter::Linear);
     set_mag_filter(TextureMagFilter::Linear);

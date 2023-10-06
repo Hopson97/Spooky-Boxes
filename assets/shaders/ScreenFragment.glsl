@@ -1,7 +1,8 @@
 #version 450
 
+layout (location = 0) out vec4 out_colour;
+
 in vec2 pass_texture_coord;
-out vec4 out_colour;
 
 uniform sampler2D texture_Colour;
 

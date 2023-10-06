@@ -25,5 +25,5 @@ struct Mesh
 using BasicMesh = Mesh<BasicVertex>;
 
 [[nodiscard]] BasicMesh generate_quad_mesh(float w, float h);
-[[nodiscard]] BasicMesh generate_cube_mesh(const glm::vec3& size);
+[[nodiscard]] BasicMesh generate_cube_mesh(const glm::vec3& size, bool repeat_texture);
 [[nodiscard]] BasicMesh generate_terrain_mesh(int size);

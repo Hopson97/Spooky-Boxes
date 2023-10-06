@@ -158,8 +158,10 @@ int main()
     // ----------------------------------------
     VertexArray billboard_vertex_array{generate_quad_mesh(1.0f, 2.0f)};
     VertexArray terrain_vertex_array{generate_terrain_mesh(128)};
-    VertexArray light_vertex_array{generate_cube_mesh({0.2f, 0.2f, 0.2f})};
-    VertexArray box_vertex_array{generate_cube_mesh({2.0f, 2.0f, 2.0f})};
+    VertexArray light_vertex_array{generate_cube_mesh({0.2f, 0.2f, 0.2f}, false)};
+    VertexArray box_vertex_array{generate_cube_mesh({2.0f, 2.0f, 2.0f}, false)};
+
+    VertexArray wall_vertex_array{generate_cube_mesh({50.0f, 15.0f, 0.2f}, true)};
 
     // ------------------------------------
     // ==== Create the OpenGL Textures ====
@@ -176,7 +178,7 @@ int main()
     // ==== Create the OpenGL Framebuffer ====
     // ---------------------------------------
     Framebuffer fbo(window.getSize().x, window.getSize().y);
-    fbo.attach_colour().attach_renderbuffer();
+    fbo.attach_colour(TextureFormat::RGB8).attach_renderbuffer();
     if (!fbo.is_complete())
     {
         return -1;
@@ -211,7 +213,8 @@ int main()
     Transform terrain_transform;
     Transform light_transform;
     std::vector<Transform> box_transforms;
-    for (int i = 0; i < 25; i++)
+    srand(time(nullptr));
+    for (int i = 0; i < 40; i++)
     {
         float x = static_cast<float>(rand() % 120) + 3;
         float z = static_cast<float>(rand() % 120) + 3;
@@ -251,7 +254,7 @@ int main()
     walk_sounds[1].setBuffer(walk1);
 
     auto create_looping_bg =
-        [](sf::Music& background_sfx, const std::string path, int volume, int offset)
+        [](sf::Music& background_sfx, const std::string path, float volume, float offset)
     {
         background_sfx.openFromFile(path);
         background_sfx.setLoop(true);
@@ -264,9 +267,9 @@ int main()
     sf::Music ambient_night1;
     sf::Music ambient_night2;
     sf::Music spookysphere;
-    create_looping_bg(ambient_night1, "assets/sounds/crickets.ogg", 25, 0);
-    create_looping_bg(ambient_night2, "assets/sounds/crickets.ogg", 10, 2);
-    create_looping_bg(spookysphere, "assets/sounds/Atmosphere_003(Loop).wav", 10, 0);
+    create_looping_bg(ambient_night1, "assets/sounds/crickets.ogg", 25.0f, 0.0f);
+    create_looping_bg(ambient_night2, "assets/sounds/crickets.ogg", 10.0f, 2.0f);
+    create_looping_bg(spookysphere, "assets/sounds/Atmosphere_003(Loop).wav", 10.0f, 0.0f);
 
     // -------------------
     // ==== Main Loop ====
@@ -415,9 +418,22 @@ int main()
         upload_base_light(scene_shader,                 settings.dir_light, "dir_light");
 
         // Set the point light shader uniforms
-        scene_shader.set_uniform("point_light.position", light_transform.position);
-        upload_base_light(scene_shader,                     settings.point_light, "point_light");
-        upload_attenuation(scene_shader,                    settings.point_light.att, "point_light");
+        scene_shader.set_uniform("point_lights[0].position", light_transform.position);
+        upload_base_light(scene_shader,                     settings.point_light, "point_lights[0]");
+        upload_attenuation(scene_shader,                    settings.point_light.att, "point_lights[0]");
+        for (int i = 0; i < 5; i++)
+        {
+            auto pos = box_transforms[i].position;
+            pos.y += 1.0f;
+            auto location = "point_lights[" + std::to_string(i + 1) + "]";
+
+            scene_shader.set_uniform(location + ".position", pos);
+            upload_base_light(scene_shader,                     settings.point_light, location);
+            upload_attenuation(scene_shader,                    settings.point_light.att, location);
+        }
+        scene_shader.set_uniform("light_count", 5);
+
+
 
         // Set the spot light shader uniforms
         scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.spot_light.cutoff)));
@@ -451,6 +467,9 @@ int main()
             scene_shader.set_uniform("model_matrix", box_matrix);
             box_vertex_array.draw();
         }
+
+        wall_vertex_array.bind();
+        wall_vertex_array.draw();
 
         // Draw billboards
         person_material.bind();
