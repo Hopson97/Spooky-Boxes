@@ -13,8 +13,9 @@ struct Framebuffer : public GLResource<glCreateFramebuffers, glDeleteFramebuffer
     void bind() const;
     void bind_colour_attachment(GLuint index, GLuint unit) const;
 
-    Framebuffer& attach_colour();
+    Framebuffer& attach_colour(TextureFormat format);
     Framebuffer& attach_renderbuffer();
+    Framebuffer& attach_depth_buffer();
 
     bool is_complete() const;
 

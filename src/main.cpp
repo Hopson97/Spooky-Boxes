@@ -13,6 +13,7 @@
 
 #include "GUI.h"
 #include "Graphics/Camera.h"
+#include "Graphics/GBuffer.h"
 #include "Graphics/Lights.h"
 #include "Graphics/Mesh.h"
 #include "Graphics/OpenGL/Framebuffer.h"
@@ -153,15 +154,17 @@ int main()
         return -1;
     }
 
-    // ----------------------------------------
-    // ==== Create the Meshes + OpenGL vertex array ====
-    // ----------------------------------------
+    // -----------------------------------------------------------
+    // ==== Create the Meshes + OpenGL vertex array + GBuffer ====
+    // -----------------------------------------------------------
     VertexArray billboard_vertex_array{generate_quad_mesh(1.0f, 2.0f)};
     VertexArray terrain_vertex_array{generate_terrain_mesh(128)};
     VertexArray light_vertex_array{generate_cube_mesh({0.2f, 0.2f, 0.2f}, false)};
     VertexArray box_vertex_array{generate_cube_mesh({2.0f, 2.0f, 2.0f}, false)};
 
     VertexArray wall_vertex_array{generate_cube_mesh({50.0f, 15.0f, 0.2f}, true)};
+
+    GBuffer gbuffer(window.getSize().x, window.getSize().y);
 
     // ------------------------------------
     // ==== Create the OpenGL Textures ====
@@ -194,8 +197,20 @@ int main()
     // ==== Load shaders ====
     // ----------------------
     Shader scene_shader;
+    // if (!scene_shader.load_from_file("assets/shaders/ScreenVertex.glsl",
+    //                                  "assets/shaders/SceneFragmentDeferred.glsl"))
+    //{
+    //     return -1;
+    // }
     if (!scene_shader.load_from_file("assets/shaders/SceneVertex.glsl",
                                      "assets/shaders/SceneFragment.glsl"))
+    {
+        return -1;
+    }
+
+    Shader gbuffer_shader;
+    if (!gbuffer_shader.load_from_file("assets/shaders/GBufferVertex.glsl",
+                                       "assets/shaders/GBufferFragment.glsl"))
     {
         return -1;
     }
@@ -375,28 +390,26 @@ int main()
             box_mats.push_back(create_model_matrix(box_transform));
         }
 
-        // -----------------------
-        // ==== Render to FBO ====
-        // -----------------------
-        // Set the framebuffer as the render target and clear
-        fbo.bind();
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
-
-        // Set the shader states
-        //......................
-        scene_shader.bind();
+        // ------------------------------
+        // ==== Set up shader states ====
+        // ------------------------------
+        //
+        // GBuffer can be used here for deferred lighting
         scene_shader.set_uniform("projection_matrix", camera.get_projection());
         scene_shader.set_uniform("view_matrix", camera.get_view_matrix());
 
-        scene_shader.set_uniform("eye_position", camera.transform.position);
-
         scene_shader.set_uniform("material.diffuse0", 0);
         scene_shader.set_uniform("material.specular0", 1);
-        scene_shader.set_uniform("material.shininess", settings.material_shine);
-        // clang-format off
 
+        // Scene
+        scene_shader.set_uniform("eye_position", camera.transform.position);
+
+        // For deferred shading:
+        // scene_shader.set_uniform("postion_tex", 0);
+        // scene_shader.set_uniform("normal_tex", 1);
+        // scene_shader.set_uniform("albedo_spec_tex", 2);
+
+        // clang-format off
         auto upload_base_light =
             [](Shader& shader, const LightBase& light, const std::string& uniform)
         {
@@ -445,7 +458,18 @@ int main()
 
         scene_shader.set_uniform("is_light", false);
 
-        // Set the terrain trasform and render
+        // -------------------------------------
+        // ==== Render to GBuffer (fbo now) ====
+        // -------------------------------------
+        // gbuffer.bind();
+        // gbuffer_shader.bind();
+        fbo.bind();
+        scene_shader.bind();
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        // ==== Render Terrain ====
         if (settings.grass)
         {
             grass_material.bind();
@@ -459,7 +483,7 @@ int main()
         terrain_vertex_array.bind();
         terrain_vertex_array.draw();
 
-        // Set the box transforms and render
+        // ==== Render Boxes ====
         create_material.bind();
         box_vertex_array.bind();
         for (auto& box_matrix : box_mats)
@@ -471,7 +495,7 @@ int main()
         wall_vertex_array.bind();
         wall_vertex_array.draw();
 
-        // Draw billboards
+        // ==== Render Billboards ====
         person_material.bind();
         billboard_vertex_array.bind();
         for (auto& transform : people_transforms)
@@ -493,11 +517,24 @@ int main()
             billboard_vertex_array.draw();
         }
 
-        // Set the light trasform and render
-        scene_shader.set_uniform("is_light", true);
+        // ==== Render Floating Light ====
         scene_shader.set_uniform("model_matrix", light_mat);
         light_vertex_array.bind();
         light_vertex_array.draw();
+
+        // -----------------------
+        // ==== Render to FBO ====
+        // -----------------------
+        /*
+        fbo.bind();
+        scene_shader.bind();
+        gbuffer.bind_position_buffer_texture(0);
+        gbuffer.bind_normal_buffer_texture(1);
+        gbuffer.bind_albedo_specular_buffer_texture(2);
+
+        glBindVertexArray(fbo_vbo);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        */
 
         // --------------------------
         // ==== Render to window ====
@@ -508,7 +545,6 @@ int main()
 
         // Bind the FBOs texture which will texture the screen quad
         fbo.bind_colour_attachment(0, 0);
-        glBindVertexArray(fbo_vbo);
         fbo_shader.bind();
 
         // Render
@@ -528,4 +564,5 @@ int main()
     // ==== Graceful Cleanup ====
     // --------------------------
     GUI::shutdown();
+    glDeleteVertexArrays(1, &fbo_vbo);
 }
