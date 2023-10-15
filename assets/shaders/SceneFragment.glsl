@@ -84,7 +84,7 @@ vec3 calculate_base_lighting(LightBase light, vec3 normal, vec3 light_direction,
 
     // Specular lighting
     vec3 reflect_direction  = reflect(-light_direction, normal);
-    float spec              = pow(max(dot(eye_direction, reflect_direction), 0.0), material.shininess);
+    float spec              = pow(max(dot(eye_direction, reflect_direction), 0.0), 16.0);//material.shininess);
     vec3 specular           = light.specular_intensity * spec * vec3(texture(material.specular0, pass_texture_coord));
 
     return ambient_light + diffuse + specular;

@@ -6,10 +6,10 @@ layout (location = 0) out vec4 out_colour;
 
 in vec2 pass_texture_coord;
 
-// in vec2 pass_texture_coord;
 // in vec3 pass_normal;
 // in vec3 pass_fragment_coord;
 
+// The 'pass_fragment_coord' aka position of the fragment in the world
 uniform sampler2D postion_tex;
 uniform sampler2D normal_tex;
 uniform sampler2D albedo_spec_tex;
