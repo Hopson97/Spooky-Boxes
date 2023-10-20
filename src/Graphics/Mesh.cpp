@@ -90,6 +90,7 @@ BasicMesh generate_cube_mesh(const glm::vec3& dimensions, bool repeat_texture)
 
 BasicMesh generate_terrain_mesh(int size)
 {
+    size += 1;
     float sizef = static_cast<float>(size);
 
     BasicMesh mesh;

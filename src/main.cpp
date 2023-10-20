@@ -11,8 +11,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 
+#include <bullet/btBulletDynamicsCommon.h>
+
 #include "GUI.h"
 #include "Graphics/Camera.h"
+#include "Graphics/DebugRenderer.h"
 #include "Graphics/GBuffer.h"
 #include "Graphics/Lights.h"
 #include "Graphics/Mesh.h"
@@ -44,6 +47,12 @@ namespace
             colour_texture.bind(0);
             specular_texture.bind(1);
         }
+    };
+
+    struct PhysicsBox
+    {
+        btRigidBody* body = nullptr;
+        Transform transform;
     };
 
     template <int Ticks>
@@ -139,6 +148,8 @@ int main()
     window.setVerticalSyncEnabled(true);
     bool mouse_locked = false;
 
+    Settings settings;
+
     window.setActive(true);
 
     if (!gladLoadGL())
@@ -158,9 +169,12 @@ int main()
     // ==== Create the Meshes + OpenGL vertex array + GBuffer ====
     // -----------------------------------------------------------
     VertexArray billboard_vertex_array{generate_quad_mesh(1.0f, 2.0f)};
-    VertexArray terrain_vertex_array{generate_terrain_mesh(128)};
+
+    auto ground_mesh = generate_terrain_mesh(10);
+    VertexArray terrain_vertex_array{ground_mesh};
     VertexArray light_vertex_array{generate_cube_mesh({0.2f, 0.2f, 0.2f}, false)};
-    VertexArray box_vertex_array{generate_cube_mesh({2.0f, 2.0f, 2.0f}, false)};
+    // VertexArray box_vertex_array{generate_cube_mesh({2.0f, 2.0f, 2.0f}, false)};
+    VertexArray box_vertex_array{generate_cube_mesh({1.0f, 1.0f, 1.0f}, false)};
 
     VertexArray wall_vertex_array{generate_cube_mesh({50.0f, 15.0f, 0.2f}, true)};
 
@@ -250,8 +264,9 @@ int main()
     light_transform.position = {20.0f, 5.0f, 20.0f};
 
     PerspectiveCamera camera(window.getSize().x, window.getSize().y, 75.0f);
-    camera.transform.position = {80.0f, 1.0f, 35.0f};
+    // camera.transform.position = {80.0f, 1.0f, 35.0f};
     camera.transform.rotation = {0.0f, 201.0f, 0.0f};
+    camera.transform.position = {15, 5, 15};
 
     // ----------------------------
     // ==== Load sound effects ====
@@ -286,10 +301,102 @@ int main()
     create_looping_bg(ambient_night2, "assets/sounds/crickets.ogg", 10.0f, 2.0f);
     create_looping_bg(spookysphere, "assets/sounds/Atmosphere_003(Loop).wav", 10.0f, 0.0f);
 
+    // ------------------------------
+    // ==== Bullet3D Experiments ====
+    // ------------------------------
+
+    // Contains the setup for memory and collisions
+    btDefaultCollisionConfiguration collision_config;
+
+    btCollisionDispatcher collision_dispatcher(&collision_config);
+
+    // Collision dispather is <todo>
+    std::unique_ptr<btBroadphaseInterface> overlapping_pair_cache =
+        std::make_unique<btDbvtBroadphase>();
+
+    // Default constraint solver
+    btSequentialImpulseConstraintSolver solver;
+
+    // The world??
+    btDiscreteDynamicsWorld dynamics_world(&collision_dispatcher, overlapping_pair_cache.get(),
+                                           &solver, &collision_config);
+
+    dynamics_world.setGravity({0, -10, 0});
+
+    // Keep track of created collision shapes so they can be released at exit
+    // btAlignedObjectArray<std::unique_ptr<btCollisionShape>> collision_shapes;
+    btAlignedObjectArray<btCollisionShape*> collision_shapes;
+
+    // -------------------------------------------------------
+    // ==== Bullet3D Experiments: Create the ground plane ====
+    // -------------------------------------------------------
+    // std::unique_ptr<btCollisionShape> ground_shape =
+    //    std::make_unique<btBoxShape>(btVector3{50.0f, 50.0f, 50.f});
+
+    btCollisionShape* ground_shape = new btBoxShape({5, 0, 5});
+
+    btScalar mass = 0.0f;
+    btVector3 ground_shape_local_inertia(0, 0, 0);
+
+    btTransform ground_transform_bt;
+    ground_transform_bt.setIdentity();
+    ground_transform_bt.setOrigin({5, 0, 5});
+
+    // Create the rigid body for the ground
+    btDefaultMotionState* ground_motion_state = new btDefaultMotionState(ground_transform_bt);
+    btRigidBody::btRigidBodyConstructionInfo ground_rb_info(
+        mass, ground_motion_state, ground_shape, ground_shape_local_inertia);
+    btRigidBody* ground_rb = new btRigidBody(ground_rb_info);
+    dynamics_world.addRigidBody(ground_rb);
+
+    // Add to the world, beware!
+    collision_shapes.push_back(ground_shape);
+
+    std::vector<PhysicsBox> dynamic_boxes;
+
+    // Adds more boxes to the world with p h y s i c s
+    auto add_dynamic_shape = [&](const glm::vec3& position, const glm::vec3& force)
+    {
+        btCollisionShape* shape = new btBoxShape(btVector3{0.5f, 0.5f, 0.5f});
+
+        btScalar box_mass = 1.0f;
+        btVector3 box_shape_local_inertia(0, 0, 0);
+        shape->calculateLocalInertia(box_mass, box_shape_local_inertia);
+
+        btTransform bt_transform;
+        bt_transform.setIdentity();
+        bt_transform.setOrigin({position.x, position.y, position.z});
+
+        collision_shapes.push_back(shape);
+
+        btDefaultMotionState* box_motion_shape = new btDefaultMotionState(bt_transform);
+        btRigidBody::btRigidBodyConstructionInfo rbInfo(box_mass, box_motion_shape, shape,
+                                                        box_shape_local_inertia);
+        btRigidBody* body = new btRigidBody(rbInfo);
+
+        body->applyCentralForce({force.x, force.y, force.z});
+        // body->applyCentralForce({settings.force.x, settings.force.y, settings.force.z});
+
+        dynamics_world.addRigidBody(body);
+
+        dynamic_boxes.push_back({body, position});
+    };
+
+    DebugRenderer debug_renderer(camera);
+    dynamics_world.setDebugDrawer(&debug_renderer);
+
+    for (int y = 0; y < 10; y++)
+    {
+        for (int x = 2; x < 6; x++)
+        {
+            add_dynamic_shape({x, y, 1}, {0, 0, 0});
+
+        }
+    }
+
     // -------------------
     // ==== Main Loop ====
     // -------------------
-    Settings settings;
 
     TimeStep<60> time_step;
     sf::Clock game_time;
@@ -315,6 +422,25 @@ int main()
                 else if (e.key.code == sf::Keyboard::L)
                 {
                     mouse_locked = !mouse_locked;
+                }
+                else if (e.key.code == sf::Keyboard::Space)
+                {
+                    auto& f = camera.get_forwards();
+                    float x = f.x * 1000;
+                    float y = f.y * 1000;
+                    float z = f.z * 1000;
+
+                    add_dynamic_shape(camera.transform.position, {x, y, z});
+                    // add_dynamic_shape({5, 5, 5});
+                    // add_dynamic_shape({5, 5, 5});
+                    // add_dynamic_shape({2, 1, 2});
+                    // add_dynamic_shape({2, 3, 2});
+
+                    // add_dynamic_shape({3.05, 1, 5});
+                    //  add_dynamic_shape({6.95, 1, 5});
+
+                    // add_dynamic_shape({5, 1, 3});
+                    // add_dynamic_shape({5, 1, 7});
                 }
             }
         }
@@ -375,6 +501,11 @@ int main()
                 //   settings.spot_light.cutoff -= 0.01;
             });
 
+        // -------------------------
+        // ==== Bullet3D Update ====
+        // -------------------------
+        dynamics_world.stepSimulation(1.0f / 60.0f, 10);
+
         // -------------------------------
         // ==== Transform Calculations ====
         // -------------------------------
@@ -383,12 +514,6 @@ int main()
         // Model matrices...
         auto terrain_mat = create_model_matrix(terrain_transform);
         auto light_mat = create_model_matrix(light_transform);
-
-        std::vector<glm::mat4> box_mats;
-        for (auto& box_transform : box_transforms)
-        {
-            box_mats.push_back(create_model_matrix(box_transform));
-        }
 
         // ------------------------------
         // ==== Set up shader states ====
@@ -466,7 +591,7 @@ int main()
         fbo.bind();
         scene_shader.bind();
         glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
+        // glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
         // ==== Render Terrain ====
@@ -484,8 +609,16 @@ int main()
         terrain_vertex_array.draw();
 
         // ==== Render Boxes ====
+        /*
         create_material.bind();
         box_vertex_array.bind();
+
+        std::vector<glm::mat4> box_mats;
+        for (auto& box_transform : box_transforms)
+        {
+            box_mats.push_back(create_model_matrix(box_transform));
+        }
+
         for (auto& box_matrix : box_mats)
         {
             scene_shader.set_uniform("model_matrix", box_matrix);
@@ -494,6 +627,24 @@ int main()
 
         wall_vertex_array.bind();
         wall_vertex_array.draw();
+        */
+        // ==== Render p h y s i c s Boxes ====
+
+        create_material.bind();
+        box_vertex_array.bind();
+        for (auto& box_transform : dynamic_boxes)
+        {
+            auto btt = box_transform.body->getWorldTransform().getOrigin();
+            box_transform.transform.position = {
+                btt[0] - 0.5,
+                btt[1] - 0.5,
+                btt[2] - 0.5,
+            };
+            auto box_matrix = create_model_matrix(box_transform.transform);
+
+            scene_shader.set_uniform("model_matrix", box_matrix);
+            box_vertex_array.draw();
+        }
 
         // ==== Render Billboards ====
         person_material.bind();
@@ -550,6 +701,12 @@ int main()
         // Render
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
+        // Render debug stuff
+        glDisable(GL_DEPTH_TEST);
+        dynamics_world.debugDrawWorld();
+        debug_renderer.render();
+        glEnable(GL_DEPTH_TEST);
+
         // --------------------------
         // ==== End Frame ====
         // --------------------------
@@ -565,4 +722,22 @@ int main()
     // --------------------------
     GUI::shutdown();
     glDeleteVertexArrays(1, &fbo_vbo);
+
+    for (int i = 0; i < collision_shapes.size(); i++)
+    {
+        delete collision_shapes[i];
+    }
+
+    // remove the rigidbodies from the dynamics world and delete them
+    for (int i = dynamics_world.getNumCollisionObjects() - 1; i >= 0; i--)
+    {
+        btCollisionObject* obj = dynamics_world.getCollisionObjectArray()[i];
+        btRigidBody* body = btRigidBody::upcast(obj);
+        if (body && body->getMotionState())
+        {
+            delete body->getMotionState();
+        }
+        dynamics_world.removeCollisionObject(obj);
+        delete obj;
+    }
 }

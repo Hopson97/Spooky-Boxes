@@ -12,8 +12,9 @@ struct VertexArray : public GLResource<glCreateVertexArrays, glDeleteVertexArray
 
     void bind() const;
     void buffer_mesh(const BasicMesh& mesh);
+    void buffer_mesh(const BulletDebugMesh& mesh);
 
-    void draw();
+    void draw(GLenum draw_mode = GL_TRIANGLES);
 
   private:
     std::vector<GLBuffer> buffers_;

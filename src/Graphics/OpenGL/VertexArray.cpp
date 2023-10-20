@@ -49,8 +49,43 @@ void VertexArray::buffer_mesh(const BasicMesh& mesh)
     buffers_.push_back(std::move(ebo));
 }
 
-void VertexArray::draw()
+void VertexArray::buffer_mesh(const BulletDebugMesh& mesh)
+{
+    assert(id);
+    GLBuffer vbo;
+    GLBuffer ebo;
+    indices_ = static_cast<GLint>(mesh.indices.size());
+
+    // Element buffer
+    glNamedBufferStorage(ebo.id, mesh.indices.size() * sizeof(GLuint), mesh.indices.data(),
+                         0x0);
+    glVertexArrayElementBuffer(id, ebo.id);
+
+    // glBufferData
+    glNamedBufferStorage(vbo.id, sizeof(BulletDebugVertex) * mesh.vertices.size(),
+                         mesh.vertices.data(), GL_DYNAMIC_STORAGE_BIT);
+
+    // Attach the vertex array to the vertex buffer and element buffer
+    glVertexArrayVertexBuffer(id, 0, vbo.id, 0, sizeof(BulletDebugVertex));
+
+    // glEnableVertexAttribArray
+    glEnableVertexArrayAttrib(id, 0);
+    glEnableVertexArrayAttrib(id, 1);
+
+    // glVertexAttribPointer
+    glVertexArrayAttribFormat(id, 0, 3, GL_FLOAT, GL_FALSE,
+                              offsetof(BulletDebugVertex, position));
+    glVertexArrayAttribFormat(id, 1, 3, GL_FLOAT, GL_FALSE,
+                              offsetof(BulletDebugVertex, colour));
+    glVertexArrayAttribBinding(id, 0, 0);
+    glVertexArrayAttribBinding(id, 1, 0);
+
+    buffers_.push_back(std::move(vbo));
+    buffers_.push_back(std::move(ebo));
+}
+
+void VertexArray::draw(GLenum draw_mode)
 {
     assert(indices_ > 0);
-    glDrawElements(GL_TRIANGLES, indices_, GL_UNSIGNED_INT, nullptr);
+    glDrawElements(draw_mode, indices_, GL_UNSIGNED_INT, nullptr);
 }

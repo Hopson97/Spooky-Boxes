@@ -7,7 +7,7 @@ struct Settings
     Settings()
     {
         dir_light.direction = {0.3f, -8.0f, 0.3f};
-        dir_light.ambient_intensity = 0.02f;
+        dir_light.ambient_intensity = 1.02f;
         dir_light.diffuse_intensity = 0.02f;
         dir_light.specular_intensity = 0.0f;
 
