@@ -1,5 +1,6 @@
 #include "VertexArray.h"
 
+
 VertexArray::VertexArray(const BasicMesh& mesh)
 {
     buffer_mesh(mesh);
@@ -14,36 +15,19 @@ void VertexArray::bind() const
 void VertexArray::buffer_mesh(const BasicMesh& mesh)
 {
     assert(id);
-    GLBuffer vbo;
-    GLBuffer ebo;
-    indices_ = static_cast<GLint>(mesh.indices.size());
 
-    // Element buffer
-    glNamedBufferStorage(ebo.id, mesh.indices.size() * sizeof(GLuint), mesh.indices.data(),
-                         0x0);
+    // Attach EBO
+    BufferObject ebo;
+    ebo.buffer_data(mesh.indices);
     glVertexArrayElementBuffer(id, ebo.id);
+    indices_ = static_cast<GLuint>(mesh.indices.size());
 
-    // glBufferData
-    // glNamedBufferStorage(vbo, points.size() * sizeof(BasicVertex), points.data(), 0x0);
-    glNamedBufferStorage(vbo.id, sizeof(BasicVertex) * mesh.vertices.size(),
-                         mesh.vertices.data(), GL_DYNAMIC_STORAGE_BIT);
-
-    // Attach the vertex array to the vertex buffer and element buffer
-    glVertexArrayVertexBuffer(id, 0, vbo.id, 0, sizeof(BasicVertex));
-
-    // glEnableVertexAttribArray
-    glEnableVertexArrayAttrib(id, 0);
-    glEnableVertexArrayAttrib(id, 1);
-    glEnableVertexArrayAttrib(id, 2);
-
-    // glVertexAttribPointer
-    glVertexArrayAttribFormat(id, 0, 3, GL_FLOAT, GL_FALSE, offsetof(BasicVertex, position));
-    glVertexArrayAttribFormat(id, 1, 2, GL_FLOAT, GL_FALSE,
-                              offsetof(BasicVertex, texture_coord));
-    glVertexArrayAttribFormat(id, 2, 3, GL_FLOAT, GL_FALSE, offsetof(BasicVertex, normal));
-    glVertexArrayAttribBinding(id, 0, 0);
-    glVertexArrayAttribBinding(id, 1, 0);
-    glVertexArrayAttribBinding(id, 2, 0);
+    // Attach VBO
+    BufferObject vbo;
+    vbo.buffer_data(mesh.vertices);
+    add_attribute(vbo, sizeof(BasicVertex), 3, GL_FLOAT, offsetof(BasicVertex, position));
+    add_attribute(vbo, sizeof(BasicVertex), 2, GL_FLOAT, offsetof(BasicVertex, texture_coord));
+    add_attribute(vbo, sizeof(BasicVertex), 3, GL_FLOAT, offsetof(BasicVertex, normal));
 
     buffers_.push_back(std::move(vbo));
     buffers_.push_back(std::move(ebo));
@@ -51,37 +35,30 @@ void VertexArray::buffer_mesh(const BasicMesh& mesh)
 
 void VertexArray::buffer_mesh(const DebugMesh& mesh)
 {
-    assert(id);
-    GLBuffer vbo;
-    GLBuffer ebo;
-    indices_ = static_cast<GLint>(mesh.indices.size());
-
-    // Element buffer
-    glNamedBufferStorage(ebo.id, mesh.indices.size() * sizeof(GLuint), mesh.indices.data(),
-                         0x0);
+    // Attach EBO
+    BufferObject ebo;
+    ebo.buffer_data(mesh.indices);
     glVertexArrayElementBuffer(id, ebo.id);
+    indices_ = static_cast<GLuint>(mesh.indices.size());
 
-    // glBufferData
-    glNamedBufferStorage(vbo.id, sizeof(DebugVertex) * mesh.vertices.size(),
-                         mesh.vertices.data(), GL_DYNAMIC_STORAGE_BIT);
-
-    // Attach the vertex array to the vertex buffer and element buffer
-    glVertexArrayVertexBuffer(id, 0, vbo.id, 0, sizeof(DebugVertex));
-
-    // glEnableVertexAttribArray
-    glEnableVertexArrayAttrib(id, 0);
-    glEnableVertexArrayAttrib(id, 1);
-
-    // glVertexAttribPointer
-    glVertexArrayAttribFormat(id, 0, 3, GL_FLOAT, GL_FALSE,
-                              offsetof(DebugVertex, position));
-    glVertexArrayAttribFormat(id, 1, 3, GL_FLOAT, GL_FALSE,
-                              offsetof(DebugVertex, colour));
-    glVertexArrayAttribBinding(id, 0, 0);
-    glVertexArrayAttribBinding(id, 1, 0);
+    // Attach VBO
+    BufferObject vbo;
+    vbo.buffer_data(mesh.vertices);
+    add_attribute(vbo, sizeof(DebugVertex), 3, GL_FLOAT, offsetof(DebugVertex, position));
+    add_attribute(vbo, sizeof(DebugVertex), 3, GL_FLOAT, offsetof(DebugVertex, colour));
 
     buffers_.push_back(std::move(vbo));
     buffers_.push_back(std::move(ebo));
+}
+
+void VertexArray::add_attribute(const BufferObject& vbo, GLsizei stride, GLint size,
+                                GLenum type, GLuint offset)
+{
+    glEnableVertexArrayAttrib(id, attribs_);
+    glVertexArrayVertexBuffer(id, attribs_, vbo.id, 0, stride);
+    glVertexArrayAttribFormat(id, attribs_, size, type, GL_FALSE, offset);
+    glVertexArrayAttribBinding(id, attribs_, 0);
+    attribs_++;
 }
 
 void VertexArray::draw(GLenum draw_mode)

@@ -15,7 +15,7 @@ DebugRenderer::DebugRenderer(const PerspectiveCamera& camera)
     : p_camera_(&camera)
 {
     if (!shader_.load_from_file("assets/shaders/DebugVertex.glsl",
-                                "assets/shaders/BulletDebugFragment.glsl"))
+                                "assets/shaders/DebugFragment.glsl"))
     {
         return;
     }
@@ -25,15 +25,15 @@ void DebugRenderer::drawLine(const btVector3& from, const btVector3& to,
                              const btVector3& from_colour, const btVector3& to_colour)
 {
     DebugVertex from_vertex = {{from.x(), from.y(), from.z()},
-                                     {from_colour.x(), from_colour.y(), from_colour.z()}};
+                               {from_colour.x(), from_colour.y(), from_colour.z()}};
     DebugVertex to_vertex = {{to.x(), to.y(), to.z()},
-                                   {to_colour.x(), to_colour.y(), to_colour.z()}};
+                             {to_colour.x(), to_colour.y(), to_colour.z()}};
 
     mesh_.vertices.push_back(from_vertex);
     mesh_.vertices.push_back(to_vertex);
 
-    mesh_.indices.push_back(mesh_.indices.size());
-    mesh_.indices.push_back(mesh_.indices.size());
+    mesh_.indices.push_back(static_cast<GLuint>(mesh_.indices.size()));
+    mesh_.indices.push_back(static_cast<GLuint>(mesh_.indices.size()));
 
     // std::printf("Drawing a line from %f %f %f to %f %f %f colour %f %f %f\n", from[0],
     // from[1],
