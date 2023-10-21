@@ -4,6 +4,7 @@
 #include <imgui_sfml/imgui-SFML.h>
 #include <imgui_sfml/imgui_impl_opengl3.h>
 
+#include "Graphics/DebugRenderer.h"
 #include "Utils/Util.h"
 
 namespace
@@ -113,6 +114,34 @@ namespace GUI
         }
         // clang-format on
 
+        ImGui::End();
+    }
+
+    void debug_renderer_window(DebugRenderer& debug_renderer, Settings& settings)
+    {
+        static bool bt_wireframe = false;
+        static bool bt_aabb = false;
+
+        static int gl_line_width = 1;
+
+        if (ImGui::Begin("Debug Rendering"))
+        {
+            ImGui::Text("Bullet3 Debug Options");
+            ImGui::Checkbox("Collision Wireframe", &bt_wireframe);
+            ImGui::Checkbox("AABBs", &bt_aabb);
+            ImGui::Separator();
+            ImGui::Text("Misc Debug Options");
+            ImGui::Checkbox("Wireframe", &settings.wireframe);
+            if (ImGui::SliderInt("Line Width", &gl_line_width, 1, 16))
+            {
+                glLineWidth(gl_line_width);
+            }
+        }
+
+        int draw_options = 0;
+        draw_options = (bt_wireframe ? DebugRenderer::DBG_DrawWireframe : 0) |
+                       (bt_aabb ? DebugRenderer::DBG_DrawAabb : 0);
+        debug_renderer.setDebugMode(draw_options);
         ImGui::End();
     }
 

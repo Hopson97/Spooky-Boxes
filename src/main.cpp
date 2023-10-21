@@ -330,17 +330,15 @@ int main()
     // -------------------------------------------------------
     // ==== Bullet3D Experiments: Create the ground plane ====
     // -------------------------------------------------------
-    // std::unique_ptr<btCollisionShape> ground_shape =
-    //    std::make_unique<btBoxShape>(btVector3{50.0f, 50.0f, 50.f});
 
-    btCollisionShape* ground_shape = new btBoxShape({50, 0, 50});
+    btCollisionShape* ground_shape = new btBoxShape({50, 2, 50});
 
     btScalar mass = 0.0f;
     btVector3 ground_shape_local_inertia(0, 0, 0);
 
     btTransform ground_transform_bt;
     ground_transform_bt.setIdentity();
-    ground_transform_bt.setOrigin({50, 0, 50});
+    ground_transform_bt.setOrigin({50, -2, 50});
 
     // Create the rigid body for the ground
     btDefaultMotionState* ground_motion_state = new btDefaultMotionState(ground_transform_bt);
@@ -425,37 +423,47 @@ int main()
                 {
                     mouse_locked = !mouse_locked;
                 }
+                else if (e.key.code == sf::Keyboard::R)
+                {
+                    debug_renderer.setDebugMode(0);
+                }
+                else if (e.key.code == sf::Keyboard::O)
+                {
+                    debug_renderer.setDebugMode(DebugRenderer::DBG_DrawWireframe |
+                                                DebugRenderer::DBG_DrawAabb);
+                }
                 else if (e.key.code == sf::Keyboard::B)
                 {
-                    int height = 5;
-                    int width = 40;
+                    int height = 10;
+                    int width = 5;
                     int base = 20;
-                    for (float y = 0.5; y < height; y++)
+                    float start = 0.45;
+                    for (float y = start; y < height; y++)
                     {
-                        for (float x = base; x < width; x++)
+                        for (float x = base; x < base + width; x++)
                         {
                             add_dynamic_shape({x, y, base}, {0, 0, 0});
                         }
                     }
-                    for (float y = 0.5; y < height; y++)
+                    for (float y = start; y < height; y++)
                     {
-                        for (float x = base; x < width; x++)
+                        for (float x = base; x < base + width; x++)
                         {
-                            add_dynamic_shape({x, y, base + base}, {0, 0, 0});
+                            add_dynamic_shape({x, y, base + width}, {0, 0, 0});
                         }
                     }
-                    for (float y = 0.5; y < height; y++)
+                    for (float y = start; y < height; y++)
                     {
-                        for (float z = base; z < width + 1; z++)
+                        for (float z = base; z < base + width + 1; z++)
                         {
                             add_dynamic_shape({base - 1, y, z}, {0, 0, 0});
                         }
                     }
-                    for (float y = 0.5; y < height; y++)
+                    for (float y = start; y < height; y++)
                     {
-                        for (float z = base; z < width + 1; z++)
+                        for (float z = base; z < base + width + 1; z++)
                         {
-                            add_dynamic_shape({base + base, y, z}, {0, 0, 0});
+                            add_dynamic_shape({base + width, y, z}, {0, 0, 0});
                         }
                     }
                 }
@@ -467,16 +475,6 @@ int main()
                     float z = f.z * 4000;
 
                     add_dynamic_shape(camera.transform.position, {x, y, z});
-                    // add_dynamic_shape({5, 5, 5});
-                    // add_dynamic_shape({5, 5, 5});
-                    // add_dynamic_shape({2, 1, 2});
-                    // add_dynamic_shape({2, 3, 2});
-
-                    // add_dynamic_shape({3.05, 1, 5});
-                    //  add_dynamic_shape({6.95, 1, 5});
-
-                    // add_dynamic_shape({5, 1, 3});
-                    // add_dynamic_shape({5, 1, 7});
                 }
             }
         }
@@ -624,6 +622,12 @@ int main()
         // -------------------------------------
         // gbuffer.bind();
         // gbuffer_shader.bind();
+
+        if (settings.wireframe)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, settings.wireframe ? GL_LINE : GL_FILL);
+        }
+
         fbo.bind();
         scene_shader.bind();
         glEnable(GL_DEPTH_TEST);
@@ -728,6 +732,10 @@ int main()
         // --------------------------
         // ==== Render to window ====
         // --------------------------
+        // Reset polygon mode to GL FILL for framebuffer
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+        // B i n d
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glViewport(0, 0, window.getSize().x, window.getSize().y);
@@ -745,6 +753,7 @@ int main()
         // --------------------------
         // ImGui::ShowDemoWindow();
         GUI::debug_window(camera.transform.position, camera.transform.rotation, settings);
+        GUI::debug_renderer_window(debug_renderer, settings);
 
         GUI::render();
         window.display();

@@ -30,8 +30,9 @@ struct Settings
     PointLight point_light;
     SpotLight spot_light;
 
-    bool wireframe = false;
     float material_shine = 32.0f;
 
     bool grass = true;
+
+    bool wireframe = false;
 };

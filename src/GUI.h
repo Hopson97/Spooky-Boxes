@@ -4,6 +4,8 @@
 
 #include "Settings.h"
 
+class DebugRenderer;
+
 
 namespace GUI
 {
@@ -20,5 +22,7 @@ namespace GUI
 
     void debug_window(const glm::vec3& camera_position,
                       const glm::vec3& camera_rotation, Settings& settings);
+
+    void debug_renderer_window(DebugRenderer& debug_renderer, Settings& setting);
 
 } // namespace GUI
