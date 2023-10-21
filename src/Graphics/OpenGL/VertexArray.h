@@ -18,16 +18,11 @@ struct BufferObject : public GLResource<glCreateBuffers, glDeleteBuffers>
 struct VertexArray : public GLResource<glCreateVertexArrays, glDeleteVertexArrays>
 {
     VertexArray() = default;
-    // VertexArray(const BasicMesh& mesh);
-
     void bind() const;
-    // void buffer_mesh(const BasicMesh& mesh);
-    // void buffer_mesh(const DebugMesh& mesh);
-
     void add_attribute(const BufferObject& vbo, GLsizei stride, GLint size, GLenum type,
                        GLuint offset);
+    void reset();
+
   private:
-    std::vector<BufferObject> buffers_;
-    GLuint indices_ = 0;
     GLuint attribs_ = 0;
 };

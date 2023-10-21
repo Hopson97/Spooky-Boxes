@@ -68,7 +68,7 @@ template <typename VertexType>
 inline void Mesh<VertexType>::buffer()
 {
     buffers_.clear();
-
+    vao_.reset();
 
     BufferObject ebo;
     ebo.buffer_data(indices);
