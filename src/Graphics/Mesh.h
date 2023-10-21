@@ -10,6 +10,8 @@
 
 #include "OpenGL/VertexArray.h"
 
+
+/// Basic vertex type for rendering
 struct BasicVertex
 {
     glm::vec3 position{0.0f};
@@ -27,6 +29,7 @@ struct BasicVertex
     }
 };
 
+/// Debug vertex type for rendering
 struct DebugVertex
 {
     glm::vec3 position{0.0f};
@@ -41,18 +44,22 @@ struct DebugVertex
     }
 };
 
+/// Mesh of a given vertex type, used to render geometry
 template <typename VertexType>
-struct Mesh
+class Mesh
 {
+  public:
     std::vector<VertexType> vertices;
     std::vector<GLuint> indices;
 
     void buffer();
-    void bind();
-    void draw(GLenum draw_mode = GL_TRIANGLES);
+    void bind() const;
+    void draw(GLenum draw_mode = GL_TRIANGLES) const;
 
+  private:
     VertexArray vao_;
     std::vector<BufferObject> buffers_;
+
     GLuint indices_ = 0;
 };
 
@@ -67,9 +74,11 @@ using DebugMesh = Mesh<DebugVertex>;
 template <typename VertexType>
 inline void Mesh<VertexType>::buffer()
 {
+    // Ensure the mesh data is reset
     buffers_.clear();
     vao_.reset();
 
+    // Attach EBO
     BufferObject ebo;
     ebo.buffer_data(indices);
     glVertexArrayElementBuffer(vao_.id, ebo.id);
@@ -86,13 +95,13 @@ inline void Mesh<VertexType>::buffer()
 }
 
 template <typename VertexType>
-inline void Mesh<VertexType>::bind()
+inline void Mesh<VertexType>::bind() const
 {
     vao_.bind();
 }
 
 template <typename VertexType>
-inline void Mesh<VertexType>::draw(GLenum draw_mode)
+inline void Mesh<VertexType>::draw(GLenum draw_mode) const
 {
     assert(indices_ > 0);
     glDrawElements(draw_mode, indices_, GL_UNSIGNED_INT, nullptr);
