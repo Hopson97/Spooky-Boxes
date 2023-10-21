@@ -24,7 +24,7 @@ BasicMesh generate_quad_mesh(float w, float h)
     };
 
     mesh.indices = {0, 1, 2, 2, 3, 0};
-
+    mesh.buffer();
     return mesh;
 }
 
@@ -84,6 +84,7 @@ BasicMesh generate_cube_mesh(const glm::vec3& dimensions, bool repeat_texture)
         mesh.indices.push_back(index);
         index += 4;
     }
+    mesh.buffer();
 
     return mesh;
 }
@@ -132,6 +133,7 @@ BasicMesh generate_terrain_mesh(int size)
             mesh.indices.push_back(bottomRight);
         }
     }
+    mesh.buffer();
 
     return mesh;
 }

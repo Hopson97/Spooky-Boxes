@@ -168,15 +168,13 @@ int main()
     // -----------------------------------------------------------
     // ==== Create the Meshes + OpenGL vertex array + GBuffer ====
     // -----------------------------------------------------------
-    VertexArray billboard_vertex_array{generate_quad_mesh(1.0f, 2.0f)};
+    auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    auto ground_mesh = generate_terrain_mesh(100);
-    VertexArray terrain_vertex_array{ground_mesh};
-    VertexArray light_vertex_array{generate_cube_mesh({0.2f, 0.2f, 0.2f}, false)};
-    // VertexArray box_vertex_array{generate_cube_mesh({2.0f, 2.0f, 2.0f}, false)};
-    VertexArray box_vertex_array{generate_cube_mesh({1.0f, 1.0f, 1.0f}, false)};
+    auto terrain_mesh = generate_terrain_mesh(100);
+    auto light_vertex_mesh = generate_cube_mesh({0.2f, 0.2f, 0.2f}, false);
+    auto box_vertex_mesh = generate_cube_mesh({1.0f, 1.0f, 1.0f}, false);
 
-    VertexArray wall_vertex_array{generate_cube_mesh({50.0f, 15.0f, 0.2f}, true)};
+    auto wall_vertex_mesh = generate_cube_mesh({50.0f, 15.0f, 0.2f}, true);
 
     GBuffer gbuffer(window.getSize().x, window.getSize().y);
 
@@ -645,8 +643,8 @@ int main()
         }
 
         scene_shader.set_uniform("model_matrix", terrain_mat);
-        terrain_vertex_array.bind();
-        terrain_vertex_array.draw();
+        terrain_mesh.bind();
+        terrain_mesh.draw();
 
         // ==== Render Boxes ====
         /*
@@ -671,7 +669,9 @@ int main()
         // ==== Render p h y s i c s Boxes ====
 
         create_material.bind();
-        box_vertex_array.bind();
+        box_vertex_mesh.bind();
+        terrain_mesh.draw();
+
         for (auto& box_transform : dynamic_boxes)
         {
             auto btt = box_transform.body->getWorldTransform().getOrigin();
@@ -683,12 +683,12 @@ int main()
             auto box_matrix = create_model_matrix(box_transform.transform);
 
             scene_shader.set_uniform("model_matrix", box_matrix);
-            box_vertex_array.draw();
+            box_vertex_mesh.draw();
         }
 
         // ==== Render Billboards ====
         person_material.bind();
-        billboard_vertex_array.bind();
+        billboard_vertex_array.vao_.bind();
         for (auto& transform : people_transforms)
         {
 
@@ -710,8 +710,8 @@ int main()
 
         // ==== Render Floating Light ====
         scene_shader.set_uniform("model_matrix", light_mat);
-        light_vertex_array.bind();
-        light_vertex_array.draw();
+        light_vertex_mesh.bind();
+        light_vertex_mesh.draw();
 
         // Render debug stuff
         dynamics_world.debugDrawWorld();

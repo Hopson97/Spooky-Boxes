@@ -92,10 +92,9 @@ void DebugRenderer::render()
     shader_.set_uniform("projection_matrix", p_camera_->get_projection());
     shader_.set_uniform("view_matrix", p_camera_->get_view_matrix());
 
-    VertexArray vao;
-    vao.buffer_mesh(mesh_);
-    vao.bind();
-    vao.draw(GL_LINES);
+    mesh_.buffer();
+    mesh_.bind();
+    mesh_.draw(GL_LINES);
 
     mesh_.vertices.clear();
     mesh_.indices.clear();
