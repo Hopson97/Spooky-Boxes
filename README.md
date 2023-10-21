@@ -14,6 +14,7 @@ The easiest way to build is to use [vcpkg](https://vcpkg.io/en/index.html) and i
 vcpkg install sfml
 vcpkg install imgui
 vcpkg install assimp
+vcpkg install bullet3
 vcpkg install glm
 vcpkg integrate install
 ```

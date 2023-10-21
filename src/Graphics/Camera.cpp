@@ -3,7 +3,7 @@
 PerspectiveCamera::PerspectiveCamera(unsigned width, unsigned height, float fov)
 {
     auto aspect = static_cast<float>(width) / static_cast<float>(height);
-    projection_matrix_ = glm::perspective(glm::radians(fov), aspect, 0.5f, 500.0f);
+    projection_matrix_ = glm::perspective(glm::radians(fov), aspect, 0.5f, 1000.0f);
 }
 
 void PerspectiveCamera::update()

@@ -170,7 +170,7 @@ int main()
     // -----------------------------------------------------------
     VertexArray billboard_vertex_array{generate_quad_mesh(1.0f, 2.0f)};
 
-    auto ground_mesh = generate_terrain_mesh(10);
+    auto ground_mesh = generate_terrain_mesh(100);
     VertexArray terrain_vertex_array{ground_mesh};
     VertexArray light_vertex_array{generate_cube_mesh({0.2f, 0.2f, 0.2f}, false)};
     // VertexArray box_vertex_array{generate_cube_mesh({2.0f, 2.0f, 2.0f}, false)};
@@ -333,19 +333,21 @@ int main()
     // std::unique_ptr<btCollisionShape> ground_shape =
     //    std::make_unique<btBoxShape>(btVector3{50.0f, 50.0f, 50.f});
 
-    btCollisionShape* ground_shape = new btBoxShape({5, 0, 5});
+    btCollisionShape* ground_shape = new btBoxShape({50, 0, 50});
 
     btScalar mass = 0.0f;
     btVector3 ground_shape_local_inertia(0, 0, 0);
 
     btTransform ground_transform_bt;
     ground_transform_bt.setIdentity();
-    ground_transform_bt.setOrigin({5, 0, 5});
+    ground_transform_bt.setOrigin({50, 0, 50});
 
     // Create the rigid body for the ground
     btDefaultMotionState* ground_motion_state = new btDefaultMotionState(ground_transform_bt);
     btRigidBody::btRigidBodyConstructionInfo ground_rb_info(
         mass, ground_motion_state, ground_shape, ground_shape_local_inertia);
+    ground_rb_info.m_friction = 1.25f;
+
     btRigidBody* ground_rb = new btRigidBody(ground_rb_info);
     dynamics_world.addRigidBody(ground_rb);
 
@@ -372,6 +374,7 @@ int main()
         btDefaultMotionState* box_motion_shape = new btDefaultMotionState(bt_transform);
         btRigidBody::btRigidBodyConstructionInfo rbInfo(box_mass, box_motion_shape, shape,
                                                         box_shape_local_inertia);
+        rbInfo.m_friction = 0.9;
         btRigidBody* body = new btRigidBody(rbInfo);
 
         body->applyCentralForce({force.x, force.y, force.z});
@@ -385,12 +388,11 @@ int main()
     DebugRenderer debug_renderer(camera);
     dynamics_world.setDebugDrawer(&debug_renderer);
 
-    for (int y = 0; y < 10; y++)
+    for (float y = 0.5; y < 10; y++)
     {
-        for (int x = 2; x < 6; x++)
+        for (float x = 2; x < 3; x++)
         {
-            add_dynamic_shape({x, y, 1}, {0, 0, 0});
-
+            // add_dynamic_shape({x, y, 1}, {0, 0, 0});
         }
     }
 
@@ -423,12 +425,46 @@ int main()
                 {
                     mouse_locked = !mouse_locked;
                 }
+                else if (e.key.code == sf::Keyboard::B)
+                {
+                    int height = 5;
+                    int width = 40;
+                    int base = 20;
+                    for (float y = 0.5; y < height; y++)
+                    {
+                        for (float x = base; x < width; x++)
+                        {
+                            add_dynamic_shape({x, y, base}, {0, 0, 0});
+                        }
+                    }
+                    for (float y = 0.5; y < height; y++)
+                    {
+                        for (float x = base; x < width; x++)
+                        {
+                            add_dynamic_shape({x, y, base + base}, {0, 0, 0});
+                        }
+                    }
+                    for (float y = 0.5; y < height; y++)
+                    {
+                        for (float z = base; z < width + 1; z++)
+                        {
+                            add_dynamic_shape({base - 1, y, z}, {0, 0, 0});
+                        }
+                    }
+                    for (float y = 0.5; y < height; y++)
+                    {
+                        for (float z = base; z < width + 1; z++)
+                        {
+                            add_dynamic_shape({base + base, y, z}, {0, 0, 0});
+                        }
+                    }
+                }
                 else if (e.key.code == sf::Keyboard::Space)
                 {
                     auto& f = camera.get_forwards();
-                    float x = f.x * 1000;
-                    float y = f.y * 1000;
-                    float z = f.z * 1000;
+                    float x = f.x * 4000;
+                    float y = f.y * 4000;
+                    float z = f.z * 4000;
 
                     add_dynamic_shape(camera.transform.position, {x, y, z});
                     // add_dynamic_shape({5, 5, 5});
@@ -673,6 +709,10 @@ int main()
         light_vertex_array.bind();
         light_vertex_array.draw();
 
+        // Render debug stuff
+        dynamics_world.debugDrawWorld();
+        debug_renderer.render();
+
         // -----------------------
         // ==== Render to FBO ====
         // -----------------------
@@ -683,8 +723,6 @@ int main()
         gbuffer.bind_normal_buffer_texture(1);
         gbuffer.bind_albedo_specular_buffer_texture(2);
 
-        glBindVertexArray(fbo_vbo);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
         */
 
         // --------------------------
@@ -699,13 +737,8 @@ int main()
         fbo_shader.bind();
 
         // Render
+        glBindVertexArray(fbo_vbo);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        // Render debug stuff
-        glDisable(GL_DEPTH_TEST);
-        dynamics_world.debugDrawWorld();
-        debug_renderer.render();
-        glEnable(GL_DEPTH_TEST);
 
         // --------------------------
         // ==== End Frame ====

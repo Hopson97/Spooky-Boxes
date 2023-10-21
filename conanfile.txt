@@ -3,6 +3,7 @@ sfml/2.6.0
 glm/0.9.9.8
 assimp/5.2.2
 imgui/1.89.9
+bullet3/3.25
 
 [options]
 
