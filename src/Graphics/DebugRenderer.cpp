@@ -14,7 +14,7 @@
 DebugRenderer::DebugRenderer(const PerspectiveCamera& camera)
     : p_camera_(&camera)
 {
-    if (!shader_.load_from_file("assets/shaders/BulletDebugVertex.glsl",
+    if (!shader_.load_from_file("assets/shaders/DebugVertex.glsl",
                                 "assets/shaders/BulletDebugFragment.glsl"))
     {
         return;
@@ -24,9 +24,9 @@ DebugRenderer::DebugRenderer(const PerspectiveCamera& camera)
 void DebugRenderer::drawLine(const btVector3& from, const btVector3& to,
                              const btVector3& from_colour, const btVector3& to_colour)
 {
-    BulletDebugVertex from_vertex = {{from.x(), from.y(), from.z()},
+    DebugVertex from_vertex = {{from.x(), from.y(), from.z()},
                                      {from_colour.x(), from_colour.y(), from_colour.z()}};
-    BulletDebugVertex to_vertex = {{to.x(), to.y(), to.z()},
+    DebugVertex to_vertex = {{to.x(), to.y(), to.z()},
                                    {to_colour.x(), to_colour.y(), to_colour.z()}};
 
     mesh_.vertices.push_back(from_vertex);

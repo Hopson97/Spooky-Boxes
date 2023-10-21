@@ -37,7 +37,7 @@ class DebugRenderer : public btIDebugDraw
     int getDebugMode() const override;
 
   private:
-    BulletDebugMesh mesh_;
+    DebugMesh mesh_;
     Shader shader_;
 
     int debug_mode_ = DBG_DrawWireframe | DBG_DrawAabb;

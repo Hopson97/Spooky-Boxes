@@ -49,7 +49,7 @@ void VertexArray::buffer_mesh(const BasicMesh& mesh)
     buffers_.push_back(std::move(ebo));
 }
 
-void VertexArray::buffer_mesh(const BulletDebugMesh& mesh)
+void VertexArray::buffer_mesh(const DebugMesh& mesh)
 {
     assert(id);
     GLBuffer vbo;
@@ -62,11 +62,11 @@ void VertexArray::buffer_mesh(const BulletDebugMesh& mesh)
     glVertexArrayElementBuffer(id, ebo.id);
 
     // glBufferData
-    glNamedBufferStorage(vbo.id, sizeof(BulletDebugVertex) * mesh.vertices.size(),
+    glNamedBufferStorage(vbo.id, sizeof(DebugVertex) * mesh.vertices.size(),
                          mesh.vertices.data(), GL_DYNAMIC_STORAGE_BIT);
 
     // Attach the vertex array to the vertex buffer and element buffer
-    glVertexArrayVertexBuffer(id, 0, vbo.id, 0, sizeof(BulletDebugVertex));
+    glVertexArrayVertexBuffer(id, 0, vbo.id, 0, sizeof(DebugVertex));
 
     // glEnableVertexAttribArray
     glEnableVertexArrayAttrib(id, 0);
@@ -74,9 +74,9 @@ void VertexArray::buffer_mesh(const BulletDebugMesh& mesh)
 
     // glVertexAttribPointer
     glVertexArrayAttribFormat(id, 0, 3, GL_FLOAT, GL_FALSE,
-                              offsetof(BulletDebugVertex, position));
+                              offsetof(DebugVertex, position));
     glVertexArrayAttribFormat(id, 1, 3, GL_FLOAT, GL_FALSE,
-                              offsetof(BulletDebugVertex, colour));
+                              offsetof(DebugVertex, colour));
     glVertexArrayAttribBinding(id, 0, 0);
     glVertexArrayAttribBinding(id, 1, 0);
 

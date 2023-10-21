@@ -15,7 +15,7 @@ struct BasicVertex
     glm::vec3 normal{0.0f};
 };
 
-struct BulletDebugVertex
+struct DebugVertex
 {
     glm::vec3 position{0.0f};
     glm::vec3 colour{0.0f};
@@ -28,9 +28,8 @@ struct Mesh
     std::vector<GLuint> indices;
 };
 
-
 using BasicMesh = Mesh<BasicVertex>;
-using BulletDebugMesh = Mesh<BulletDebugVertex>;
+using DebugMesh = Mesh<DebugVertex>;
 
 [[nodiscard]] BasicMesh generate_quad_mesh(float w, float h);
 [[nodiscard]] BasicMesh generate_cube_mesh(const glm::vec3& size, bool repeat_texture);
