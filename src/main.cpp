@@ -9,6 +9,7 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 
 #include "GUI.h"
@@ -159,13 +160,14 @@ int main()
     {
         return -1;
     }
+    srand(static_cast<unsigned>(time(nullptr)));
 
     // -----------------------------------------------------------
     // ==== Create the Meshes + OpenGL vertex array + GBuffer ====
     // -----------------------------------------------------------
     auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    HeightMap height_map{70};
+    HeightMap height_map{128};
     {
         TerrainGenerationOptions options;
         options.amplitude = 125.0f;
@@ -250,18 +252,17 @@ int main()
     Transform terrain_transform;
     Transform light_transform;
     Transform model_transform;
-    model_transform.position = {50, 10, 50};
+    model_transform.position = {50, height_map.get_height(50, 50), 50};
     model_transform.scale = {2, 2, 2};
 
     std::vector<Transform> box_transforms;
-    srand(static_cast<unsigned>(time(nullptr)));
     for (int i = 0; i < 40; i++)
     {
-        float x = static_cast<float>(rand() % 120) + 3;
-        float z = static_cast<float>(rand() % 120) + 3;
+        float x = static_cast<float>(rand() % height_map.size) + 3;
+        float z = static_cast<float>(rand() % height_map.size) + 3;
         float r = static_cast<float>(rand() % 360);
 
-        box_transforms.push_back({{x, 0.0f, z}, {0.0f, r, 0}});
+        box_transforms.push_back({{x, height_map.get_height(x, z), z}, {0.0f, r, 0}});
     }
 
     std::vector<Transform> people_transforms;
@@ -431,12 +432,11 @@ int main()
     // --------------------------------------------------------
     // ==== Bullet3D Experiments: Creates additional boxes ====
     // --------------------------------------------------------
-    auto add_dynamic_shape = [&](const glm::vec3& position, const glm::vec3& force)
+    auto add_dynamic_shape = [&](const glm::vec3& position, const glm::vec3& force, float mass)
     {
         PhysicsObject& box = physics_objects.emplace_back();
         box.collision_shape = std::make_unique<btBoxShape>(btVector3{0.5f, 0.5f, 0.5f});
 
-        btScalar mass = 1.0f;
         btVector3 local_inertia(0, 0, 0);
         box.collision_shape->calculateLocalInertia(mass, local_inertia);
 
@@ -505,40 +505,39 @@ int main()
                     {
                         for (float x = base; x < base + width; x++)
                         {
-                            add_dynamic_shape({x, y, base}, {0, 0, 0});
+                            add_dynamic_shape({x, y, base}, {0, 0, 0}, 1.0f);
                         }
                     }
                     for (float y = start; y < start + height; y++)
                     {
                         for (float x = base; x < base + width; x++)
                         {
-                            add_dynamic_shape({x, y, base + width}, {0, 0, 0});
+                            add_dynamic_shape({x, y, base + width}, {0, 0, 0}, 1.0f);
                         }
                     }
                     for (float y = start; y < start + height; y++)
                     {
                         for (float z = base; z < base + width + 1; z++)
                         {
-                            add_dynamic_shape({base - 1, y, z}, {0, 0, 0});
+                            add_dynamic_shape({base - 1, y, z}, {0, 0, 0}, 1.0f);
                         }
                     }
                     for (float y = start; y < start + height; y++)
                     {
                         for (float z = base; z < base + width + 1; z++)
                         {
-                            add_dynamic_shape({base + width, y, z}, {0, 0, 0});
+                            add_dynamic_shape({base + width, y, z}, {0, 0, 0}, 1.0f);
                         }
                     }
                 }
                 else if (e.key.code == sf::Keyboard::Space)
                 {
-                    const float force = 2.0f;
                     auto& f = camera.get_forwards();
-                    float x = f.x * force;
-                    float y = f.y * force;
-                    float z = f.z * force;
+                    float x = f.x * settings.throw_force;
+                    float y = f.y * settings.throw_force;
+                    float z = f.z * settings.throw_force;
 
-                    add_dynamic_shape(camera.transform.position + f * 3.0f, {x, y, z});
+                    add_dynamic_shape(camera.transform.position + f * 3.0f, {x, y, z}, settings.throw_mass);
                 }
             }
         }
@@ -744,20 +743,16 @@ int main()
         terrain_mesh.bind();
         terrain_mesh.draw();
 
+        // Render the boxes, using the built in getOpenGLMatrix from bullet
         create_material.bind();
         box_vertex_mesh.bind();
-
         for (auto& box_transform : physics_objects)
         {
-            auto btt = box_transform.body->getWorldTransform().getOrigin();
-            glm::vec3 position = {
-                btt[0] - 0.5,
-                btt[1] - 0.5,
-                btt[2] - 0.5,
-            };
-            auto box_matrix = create_model_matrix({position, glm::vec3{0.0}});
+            glm::mat4 m{1.0f};
+            box_transform.body->getWorldTransform().getOpenGLMatrix(glm::value_ptr(m));
+            m = glm::translate(m, {-0.5, -0.5, -0.5});
 
-            scene_shader.set_uniform("model_matrix", box_matrix);
+            scene_shader.set_uniform("model_matrix", m);
             box_vertex_mesh.draw();
         }
 

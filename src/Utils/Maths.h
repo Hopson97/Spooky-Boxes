@@ -5,12 +5,17 @@
 #include <glm/common.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 struct Transform
 {
     glm::vec3 position{0.0f};
     glm::vec3 rotation{0.0f};
     glm::vec3 scale{1.0f};
+
+    // Experimental
+    glm::quat quat{1.0f, {0.0f, 0.0f, 0.0f}};
+    bool usequat = false;
 };
 
 glm::mat4 create_model_matrix(const Transform& transform);

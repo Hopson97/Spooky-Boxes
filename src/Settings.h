@@ -6,9 +6,9 @@ struct Settings
 {
     Settings()
     {
-        dir_light.direction = {0.3f, -8.0f, 0.3f};
-        dir_light.ambient_intensity = 1.02f;
-        dir_light.diffuse_intensity = 0.02f;
+        dir_light.direction = {0.8f, -0.2f, 0.1f};
+        dir_light.ambient_intensity = 0.2f;
+        dir_light.diffuse_intensity = 0.6f;
         dir_light.specular_intensity = 0.0f;
 
         point_light.ambient_intensity = 0.3f;
@@ -35,4 +35,7 @@ struct Settings
     bool grass = true;
 
     bool wireframe = false;
+
+    float throw_force = 4000.0f;
+    float throw_mass = 1.0f;
 };

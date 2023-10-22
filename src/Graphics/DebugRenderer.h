@@ -40,6 +40,6 @@ class DebugRenderer : public btIDebugDraw
     DebugMesh mesh_;
     Shader shader_;
 
-    int debug_mode_ = DBG_DrawWireframe | DBG_DrawAabb;
+    int debug_mode_ = 0;
     const PerspectiveCamera* p_camera_ = nullptr;
 };

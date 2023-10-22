@@ -111,6 +111,10 @@ namespace GUI
             base_light_widgets(settings.spot_light);
             attenuation_widgets(settings.spot_light.att);
             ImGui::PopID();
+
+            ImGui::SliderFloat("Throw Force", &settings.throw_force, 0.0, 10000.0f);
+            ImGui::SliderFloat("Throw Mass", &settings.throw_mass, 0.0, 90.0f);
+
         }
         // clang-format on
 
