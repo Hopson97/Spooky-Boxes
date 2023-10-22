@@ -19,12 +19,15 @@
 #include "Graphics/GBuffer.h"
 #include "Graphics/Lights.h"
 #include "Graphics/Mesh.h"
+#include "Graphics/Model.h"
 #include "Graphics/OpenGL/Framebuffer.h"
 #include "Graphics/OpenGL/GLDebugEnable.h"
 #include "Graphics/OpenGL/GLResource.h"
 #include "Graphics/OpenGL/Shader.h"
 #include "Graphics/OpenGL/Texture.h"
 #include "Graphics/OpenGL/VertexArray.h"
+#include "Physics/PhysicsSystem.h"
+#include "Utils/HeightMap.h"
 #include "Utils/Maths.h"
 #include "Utils/Util.h"
 
@@ -47,12 +50,6 @@ namespace
             colour_texture.bind(0);
             specular_texture.bind(1);
         }
-    };
-
-    struct PhysicsBox
-    {
-        btRigidBody* body = nullptr;
-        Transform transform;
     };
 
     template <int Ticks>
@@ -168,15 +165,28 @@ int main()
     // -----------------------------------------------------------
     // ==== Create the Meshes + OpenGL vertex array + GBuffer ====
     // -----------------------------------------------------------
-    VertexArray billboard_vertex_array{generate_quad_mesh(1.0f, 2.0f)};
+    auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    auto ground_mesh = generate_terrain_mesh(100);
-    VertexArray terrain_vertex_array{ground_mesh};
-    VertexArray light_vertex_array{generate_cube_mesh({0.2f, 0.2f, 0.2f}, false)};
-    // VertexArray box_vertex_array{generate_cube_mesh({2.0f, 2.0f, 2.0f}, false)};
-    VertexArray box_vertex_array{generate_cube_mesh({1.0f, 1.0f, 1.0f}, false)};
+    HeightMap height_map{256};
+    {
+        TerrainGenerationOptions options;
+        options.amplitude = 125.0f;
+        options.roughness = 0.6f;
+        options.octaves = 7;
+        options.seed = rand();
+        std::cout << "Seed: " << options.seed << "\n";
 
-    VertexArray wall_vertex_array{generate_cube_mesh({50.0f, 15.0f, 0.2f}, true)};
+        height_map.generate_terrain(options);
+        height_map.set_base_height();
+    }
+    auto terrain_mesh = generate_terrain_mesh(height_map);
+    auto light_vertex_mesh = generate_cube_mesh({0.2f, 0.2f, 0.2f}, false);
+    auto box_vertex_mesh = generate_cube_mesh({1.0f, 1.0f, 1.0f}, false);
+
+    auto wall_vertex_mesh = generate_cube_mesh({50.0f, 15.0f, 0.2f}, true);
+
+    Model model;
+    model.load_from_file("assets/models/backpack/backpack.obj");
 
     GBuffer gbuffer(window.getSize().x, window.getSize().y);
 
@@ -241,8 +251,9 @@ int main()
     // -----------------------------------
     Transform terrain_transform;
     Transform light_transform;
+    Transform model_transform;
     std::vector<Transform> box_transforms;
-    srand(time(nullptr));
+    srand(static_cast<unsigned>(time(nullptr)));
     for (int i = 0; i < 40; i++)
     {
         float x = static_cast<float>(rand() % 120) + 3;
@@ -304,7 +315,6 @@ int main()
     // ------------------------------
     // ==== Bullet3D Experiments ====
     // ------------------------------
-
     // Contains the setup for memory and collisions
     btDefaultCollisionConfiguration collision_config;
 
@@ -325,62 +335,72 @@ int main()
 
     // Keep track of created collision shapes so they can be released at exit
     // btAlignedObjectArray<std::unique_ptr<btCollisionShape>> collision_shapes;
-    btAlignedObjectArray<btCollisionShape*> collision_shapes;
+    std::vector<PhysicsObject> physics_objects;
+
+    auto btv = [&](const glm::vec3& v) { return btVector3{v.x, v.y, v.z}; };
 
     // -------------------------------------------------------
     // ==== Bullet3D Experiments: Create the ground plane ====
     // -------------------------------------------------------
 
-    btCollisionShape* ground_shape = new btBoxShape({50, 2, 50});
+    // The triangle mesh must be kept alive so created in the outer scope
+    btTriangleMesh traingles_mesh;
+    {
+        PhysicsObject& ground = physics_objects.emplace_back();
 
-    btScalar mass = 0.0f;
-    btVector3 ground_shape_local_inertia(0, 0, 0);
+        auto& is = terrain_mesh.indices;
+        auto& vs = terrain_mesh.vertices;
+        for (int i = 0; i < terrain_mesh.indices.size(); i += 3)
+        {
+            auto v1 = btv(vs[is[i]].position);
+            auto v2 = btv(vs[is[i + 1]].position);
+            auto v3 = btv(vs[is[i + 2]].position);
+            traingles_mesh.addTriangle(v1, v2, v3);
+        }
+        ground.collision_shape = std::make_unique<btBvhTriangleMeshShape>(&traingles_mesh, true, true);
 
-    btTransform ground_transform_bt;
-    ground_transform_bt.setIdentity();
-    ground_transform_bt.setOrigin({50, -2, 50});
 
-    // Create the rigid body for the ground
-    btDefaultMotionState* ground_motion_state = new btDefaultMotionState(ground_transform_bt);
-    btRigidBody::btRigidBodyConstructionInfo ground_rb_info(
-        mass, ground_motion_state, ground_shape, ground_shape_local_inertia);
-    ground_rb_info.m_friction = 1.25f;
+        btScalar mass = 0.0f;
+        btVector3 ground_shape_local_inertia(0, 0, 0);
 
-    btRigidBody* ground_rb = new btRigidBody(ground_rb_info);
-    dynamics_world.addRigidBody(ground_rb);
+        btTransform ground_transform;
+        ground_transform.setIdentity();
+        ground_transform.setOrigin({0,0, 0});
 
-    // Add to the world, beware!
-    collision_shapes.push_back(ground_shape);
+        // Create the rigid body for the ground
+        ground.motion_state = std::make_unique<btDefaultMotionState>(ground_transform);
 
-    std::vector<PhysicsBox> dynamic_boxes;
+        btRigidBody::btRigidBodyConstructionInfo ground_rb_info(
+            mass, ground.motion_state.get(), ground.collision_shape.get(),
+            ground_shape_local_inertia);
+        ground_rb_info.m_friction = 1.25f;
+        ground.body = std::make_unique<btRigidBody>(ground_rb_info);
+        dynamics_world.addRigidBody(ground.body.get());
+    }
 
     // Adds more boxes to the world with p h y s i c s
     auto add_dynamic_shape = [&](const glm::vec3& position, const glm::vec3& force)
     {
-        btCollisionShape* shape = new btBoxShape(btVector3{0.5f, 0.5f, 0.5f});
+        PhysicsObject& box = physics_objects.emplace_back();
+        box.collision_shape = std::make_unique<btBoxShape>(btVector3{0.5f, 0.5f, 0.5f});
 
-        btScalar box_mass = 1.0f;
-        btVector3 box_shape_local_inertia(0, 0, 0);
-        shape->calculateLocalInertia(box_mass, box_shape_local_inertia);
+        btScalar mass = 1.0f;
+        btVector3 local_inertia(0, 0, 0);
+        box.collision_shape->calculateLocalInertia(mass, local_inertia);
 
         btTransform bt_transform;
         bt_transform.setIdentity();
         bt_transform.setOrigin({position.x, position.y, position.z});
 
-        collision_shapes.push_back(shape);
+        box.motion_state = std::make_unique<btDefaultMotionState>(bt_transform);
+        btRigidBody::btRigidBodyConstructionInfo box_rb_info(
+            mass, box.motion_state.get(), box.collision_shape.get(), local_inertia);
 
-        btDefaultMotionState* box_motion_shape = new btDefaultMotionState(bt_transform);
-        btRigidBody::btRigidBodyConstructionInfo rbInfo(box_mass, box_motion_shape, shape,
-                                                        box_shape_local_inertia);
-        rbInfo.m_friction = 0.9;
-        btRigidBody* body = new btRigidBody(rbInfo);
+        box_rb_info.m_friction = 0.9f;
+        box.body = std::make_unique<btRigidBody>(box_rb_info);
 
-        body->applyCentralForce({force.x, force.y, force.z});
-        // body->applyCentralForce({settings.force.x, settings.force.y, settings.force.z});
-
-        dynamics_world.addRigidBody(body);
-
-        dynamic_boxes.push_back({body, position});
+        box.body->applyCentralForce({force.x, force.y, force.z});
+        dynamics_world.addRigidBody(box.body.get());
     };
 
     DebugRenderer debug_renderer(camera);
@@ -434,9 +454,9 @@ int main()
                 }
                 else if (e.key.code == sf::Keyboard::B)
                 {
-                    int height = 10;
-                    int width = 5;
-                    int base = 20;
+                    float height = 50;
+                    float width = 5;
+                    float base = 50;
                     float start = 0.45;
                     for (float y = start; y < height; y++)
                     {
@@ -469,12 +489,13 @@ int main()
                 }
                 else if (e.key.code == sf::Keyboard::Space)
                 {
+                    const float force = 2.0f;
                     auto& f = camera.get_forwards();
-                    float x = f.x * 4000;
-                    float y = f.y * 4000;
-                    float z = f.z * 4000;
+                    float x = f.x * force;
+                    float y = f.y * force;
+                    float z = f.z * force;
 
-                    add_dynamic_shape(camera.transform.position, {x, y, z});
+                    add_dynamic_shape(camera.transform.position + f * 3.0f, {x, y, z});
                 }
             }
         }
@@ -540,6 +561,38 @@ int main()
         // -------------------------
         dynamics_world.stepSimulation(1.0f / 60.0f, 10);
 
+        // Remove dead objects
+        for (auto itr = physics_objects.begin(); itr != physics_objects.end();)
+        {
+            auto& rb = itr->body;
+            auto y = rb->getWorldTransform().getOrigin().getY();
+            if (y < -5)
+            {
+                dynamics_world.removeRigidBody(itr->body.get());
+                itr = physics_objects.erase(itr);
+            }
+            else
+            {
+                itr++;
+            }
+        }
+
+        // Iterate through collisions?
+        /*
+        for (int i = 0; i < dynamics_world.getDispatcher()->getNumManifolds(); i++)
+        {
+            auto manifold = dynamics_world.getDispatcher()->getManifoldByIndexInternal(i);
+            auto obj_a = manifold->getBody0();
+            auto obj_b = manifold->getBody1();
+            if (obj_a && obj_b)
+            {
+                if (manifold->getNumContacts() > 0)
+                {
+                    // collisoon...
+                }
+            }
+        }
+        */
         // -------------------------------
         // ==== Transform Calculations ====
         // -------------------------------
@@ -645,45 +698,25 @@ int main()
         }
 
         scene_shader.set_uniform("model_matrix", terrain_mat);
-        terrain_vertex_array.bind();
-        terrain_vertex_array.draw();
-
-        // ==== Render Boxes ====
-        /*
-        create_material.bind();
-        box_vertex_array.bind();
-
-        std::vector<glm::mat4> box_mats;
-        for (auto& box_transform : box_transforms)
-        {
-            box_mats.push_back(create_model_matrix(box_transform));
-        }
-
-        for (auto& box_matrix : box_mats)
-        {
-            scene_shader.set_uniform("model_matrix", box_matrix);
-            box_vertex_array.draw();
-        }
-
-        wall_vertex_array.bind();
-        wall_vertex_array.draw();
-        */
-        // ==== Render p h y s i c s Boxes ====
+        terrain_mesh.bind();
+        terrain_mesh.draw();
 
         create_material.bind();
-        box_vertex_array.bind();
-        for (auto& box_transform : dynamic_boxes)
+        box_vertex_mesh.bind();
+        terrain_mesh.draw();
+
+        for (auto& box_transform : physics_objects)
         {
             auto btt = box_transform.body->getWorldTransform().getOrigin();
-            box_transform.transform.position = {
+            glm::vec3 position = {
                 btt[0] - 0.5,
                 btt[1] - 0.5,
                 btt[2] - 0.5,
             };
-            auto box_matrix = create_model_matrix(box_transform.transform);
+            auto box_matrix = create_model_matrix({position, glm::vec3{0.0}});
 
             scene_shader.set_uniform("model_matrix", box_matrix);
-            box_vertex_array.draw();
+            box_vertex_mesh.draw();
         }
 
         // ==== Render Billboards ====
@@ -710,8 +743,12 @@ int main()
 
         // ==== Render Floating Light ====
         scene_shader.set_uniform("model_matrix", light_mat);
-        light_vertex_array.bind();
-        light_vertex_array.draw();
+        light_vertex_mesh.bind();
+        light_vertex_mesh.draw();
+
+        model_transform.position = {10, 10, 10};
+        scene_shader.set_uniform("model_matrix", create_model_matrix(model_transform));
+        model.draw(scene_shader);
 
         // Render debug stuff
         dynamics_world.debugDrawWorld();
@@ -765,21 +802,10 @@ int main()
     GUI::shutdown();
     glDeleteVertexArrays(1, &fbo_vbo);
 
-    for (int i = 0; i < collision_shapes.size(); i++)
-    {
-        delete collision_shapes[i];
-    }
-
-    // remove the rigidbodies from the dynamics world and delete them
     for (int i = dynamics_world.getNumCollisionObjects() - 1; i >= 0; i--)
     {
         btCollisionObject* obj = dynamics_world.getCollisionObjectArray()[i];
         btRigidBody* body = btRigidBody::upcast(obj);
-        if (body && body->getMotionState())
-        {
-            delete body->getMotionState();
-        }
         dynamics_world.removeCollisionObject(obj);
-        delete obj;
     }
 }

@@ -4,6 +4,8 @@
 
 #include <SFML/Graphics/Image.hpp>
 
+#include "../Utils/HeightMap.h"
+
 /*
 Cool blue RGB:
 
@@ -24,7 +26,7 @@ BasicMesh generate_quad_mesh(float w, float h)
     };
 
     mesh.indices = {0, 1, 2, 2, 3, 0};
-
+    mesh.buffer();
     return mesh;
 }
 
@@ -84,44 +86,53 @@ BasicMesh generate_cube_mesh(const glm::vec3& dimensions, bool repeat_texture)
         mesh.indices.push_back(index);
         index += 4;
     }
+    mesh.buffer();
 
     return mesh;
 }
 
-BasicMesh generate_terrain_mesh(int size)
+BasicMesh generate_terrain_mesh(const HeightMap& height_map)
 {
-    size += 1;
-    float sizef = static_cast<float>(size);
+    float sizef = static_cast<float>(height_map.size);
 
     BasicMesh mesh;
-    for (int z = 0; z < size; z++)
+    for (int z = 0; z < height_map.size; z++)
     {
-        for (int x = 0; x < size; x++)
+        for (int x = 0; x < height_map.size; x++)
         {
             GLfloat fz = static_cast<GLfloat>(z);
             GLfloat fx = static_cast<GLfloat>(x);
 
             BasicVertex vertex;
             vertex.position.x = fx;
-            vertex.position.y = 0.0f;
+            vertex.position.y = height_map.get_height(x, z);
             vertex.position.z = fz;
 
             vertex.texture_coord.s = fx;
             vertex.texture_coord.t = fz;
 
-            vertex.normal = {0, 1, 0};
+            float height_left = x > 0 ? height_map.get_height(x - 1, z) : 0;
+            float height_right = x < height_map.size - 1 ? height_map.get_height(x + 1, z) : 0;
+            float height_down = z > 0 ? height_map.get_height(x, z - 1) : 0;
+            float height_up = z < height_map.size - 1 ? height_map.get_height(x, z + 1) : 0;
+
+            vertex.normal = glm::normalize(glm::vec3{
+                height_left - height_right,
+                2.0f,
+                height_down - height_up,
+            });
 
             mesh.vertices.push_back(vertex);
         }
     }
 
-    for (int z = 0; z < size - 1; z++)
+    for (int z = 0; z < height_map.size - 1; z++)
     {
-        for (int x = 0; x < size - 1; x++)
+        for (int x = 0; x < height_map.size - 1; x++)
         {
-            int topLeft = (z * size) + x;
+            int topLeft = (z * height_map.size) + x;
             int topRight = topLeft + 1;
-            int bottomLeft = ((z + 1) * size) + x;
+            int bottomLeft = ((z + 1) * height_map.size) + x;
             int bottomRight = bottomLeft + 1;
 
             mesh.indices.push_back(topLeft);
@@ -132,6 +143,7 @@ BasicMesh generate_terrain_mesh(int size)
             mesh.indices.push_back(bottomRight);
         }
     }
+    mesh.buffer();
 
     return mesh;
 }
