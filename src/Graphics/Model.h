@@ -20,6 +20,9 @@ class Model
         std::string path;
     };
 
+
+
+  public:
     struct ModelMesh
     {
         BasicMesh mesh;
@@ -28,7 +31,6 @@ class Model
         bool buffered = false;
     };
 
-  public:
     Model() = default;
 
     Model(const std::filesystem::path& path);
@@ -37,6 +39,8 @@ class Model
     Model(const BasicMesh& mesh);
 
     void draw(Shader& shader);
+
+    const std::vector<ModelMesh>& get_meshes() const;
 
   private:
     void process_node(aiNode* node, const aiScene* scene);

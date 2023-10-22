@@ -16,7 +16,7 @@ struct PerspectiveCamera
     const glm::vec3& get_forwards() const;
 
   private:
-    glm::mat4 projection_matrix_;
-    glm::mat4 view_matrix_;
-    glm::vec3 forwards_;
+    glm::mat4 projection_matrix_{1.0f};
+    glm::mat4 view_matrix_{1.0f};
+    glm::vec3 forwards_{0.0f};
 };

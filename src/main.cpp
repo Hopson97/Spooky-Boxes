@@ -11,8 +11,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 
-#include <bullet/btBulletDynamicsCommon.h>
-
 #include "GUI.h"
 #include "Graphics/Camera.h"
 #include "Graphics/DebugRenderer.h"
@@ -167,7 +165,7 @@ int main()
     // -----------------------------------------------------------
     auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    HeightMap height_map{256};
+    HeightMap height_map{70};
     {
         TerrainGenerationOptions options;
         options.amplitude = 125.0f;
@@ -186,7 +184,7 @@ int main()
     auto wall_vertex_mesh = generate_cube_mesh({50.0f, 15.0f, 0.2f}, true);
 
     Model model;
-    model.load_from_file("assets/models/backpack/backpack.obj");
+    model.load_from_file("assets/models/House/House.obj");
 
     GBuffer gbuffer(window.getSize().x, window.getSize().y);
 
@@ -252,6 +250,9 @@ int main()
     Transform terrain_transform;
     Transform light_transform;
     Transform model_transform;
+    model_transform.position = {50, 10, 50};
+    model_transform.scale = {2, 2, 2};
+
     std::vector<Transform> box_transforms;
     srand(static_cast<unsigned>(time(nullptr)));
     for (int i = 0; i < 40; i++)
@@ -266,10 +267,10 @@ int main()
     std::vector<Transform> people_transforms;
     for (int i = 0; i < 50; i++)
     {
-        float x = static_cast<float>(rand() % 120) + 3;
-        float z = static_cast<float>(rand() % 120) + 3;
+        float x = static_cast<float>(rand() % height_map.size) + 3;
+        float z = static_cast<float>(rand() % height_map.size) + 3;
 
-        people_transforms.push_back({{x, 0.0f, z}, {0.0f, 0.0, 0}});
+        people_transforms.push_back({{x, height_map.get_height(x, z), z}, {0.0f, 0.0, 0}});
     }
 
     light_transform.position = {20.0f, 5.0f, 20.0f};
@@ -340,28 +341,27 @@ int main()
     // btAlignedObjectArray<std::unique_ptr<btCollisionShape>> collision_shapes;
     std::vector<PhysicsObject> physics_objects;
 
-    auto btv = [&](const glm::vec3& v) { return btVector3{v.x, v.y, v.z}; };
-
     // -------------------------------------------------------
     // ==== Bullet3D Experiments: Create the ground plane ====
     // -------------------------------------------------------
 
     // The triangle mesh must be kept alive so created in the outer scope
-    btTriangleMesh traingles_mesh;
+    btTriangleMesh terrain_collision_mesh;
     {
         PhysicsObject& ground = physics_objects.emplace_back();
 
+        // Create the collision mesh
         auto& is = terrain_mesh.indices;
         auto& vs = terrain_mesh.vertices;
         for (int i = 0; i < terrain_mesh.indices.size(); i += 3)
         {
-            auto v1 = btv(vs[is[i]].position);
-            auto v2 = btv(vs[is[i + 1]].position);
-            auto v3 = btv(vs[is[i + 2]].position);
-            traingles_mesh.addTriangle(v1, v2, v3);
+            auto v1 = to_btvec3(vs[is[i]].position);
+            auto v2 = to_btvec3(vs[is[i + 1]].position);
+            auto v3 = to_btvec3(vs[is[i + 2]].position);
+            terrain_collision_mesh.addTriangle(v1, v2, v3);
         }
         ground.collision_shape =
-            std::make_unique<btBvhTriangleMeshShape>(&traingles_mesh, true, true);
+            std::make_unique<btBvhTriangleMeshShape>(&terrain_collision_mesh, true, true);
 
         btScalar mass = 0.0f;
         btVector3 ground_shape_local_inertia(0, 0, 0);
@@ -381,7 +381,56 @@ int main()
         dynamics_world.addRigidBody(ground.body.get());
     }
 
-    // Adds more boxes to the world with p h y s i c s
+    // ----------------------------------------------------
+    // ==== Bullet3D Experiments: Create a static mesh ====
+    // ----------------------------------------------------
+    std::vector<std::unique_ptr<btTriangleMesh>> model_collision_meshes;
+
+    for (auto& model_mesh : model.get_meshes())
+    {
+        auto& mesh = model_mesh.mesh;
+
+        auto& collision_mesh =
+            model_collision_meshes.emplace_back(std::make_unique<btTriangleMesh>());
+        PhysicsObject& mesh_object = physics_objects.emplace_back();
+
+        auto& is = mesh.indices;
+        auto& vs = mesh.vertices;
+        for (int i = 0; i < mesh.indices.size(); i += 3)
+        {
+            auto v1 = to_btvec3(vs[is[i]].position);
+            auto v2 = to_btvec3(vs[is[i + 1]].position);
+            auto v3 = to_btvec3(vs[is[i + 2]].position);
+            collision_mesh->addTriangle(v1, v2, v3);
+        }
+        collision_mesh->setScaling(to_btvec3(model_transform.scale));
+
+        mesh_object.collision_shape =
+            std::make_unique<btBvhTriangleMeshShape>(collision_mesh.get(), true, true);
+
+        btScalar mass = 0.0f;
+        btVector3 local_inertia(0, 0, 0);
+
+        btTransform transform;
+        transform.setIdentity();
+        auto& pos = model_transform.position;
+        transform.setOrigin({pos.x, pos.y, pos.z});
+
+        // Create the rigid body for the ground
+        mesh_object.motion_state = std::make_unique<btDefaultMotionState>(transform);
+
+        btRigidBody::btRigidBodyConstructionInfo rb_info(mass, mesh_object.motion_state.get(),
+                                                         mesh_object.collision_shape.get(),
+                                                         local_inertia);
+        rb_info.m_friction = 1.25f;
+        mesh_object.body = std::make_unique<btRigidBody>(rb_info);
+
+        dynamics_world.addRigidBody(mesh_object.body.get());
+    }
+
+    // --------------------------------------------------------
+    // ==== Bullet3D Experiments: Creates additional boxes ====
+    // --------------------------------------------------------
     auto add_dynamic_shape = [&](const glm::vec3& position, const glm::vec3& force)
     {
         PhysicsObject& box = physics_objects.emplace_back();
@@ -446,18 +495,9 @@ int main()
                 {
                     mouse_locked = !mouse_locked;
                 }
-                else if (e.key.code == sf::Keyboard::R)
-                {
-                    debug_renderer.setDebugMode(0);
-                }
-                else if (e.key.code == sf::Keyboard::O)
-                {
-                    debug_renderer.setDebugMode(DebugRenderer::DBG_DrawWireframe |
-                                                DebugRenderer::DBG_DrawAabb);
-                }
                 else if (e.key.code == sf::Keyboard::B)
                 {
-                    float height = 50;
+                    float height = 15;
                     float width = 5;
                     float base = 50;
                     float start = 50;
@@ -706,7 +746,6 @@ int main()
 
         create_material.bind();
         box_vertex_mesh.bind();
-        terrain_mesh.draw();
 
         for (auto& box_transform : physics_objects)
         {
@@ -749,7 +788,6 @@ int main()
         light_vertex_mesh.bind();
         light_vertex_mesh.draw();
 
-        model_transform.position = {10, 10, 10};
         scene_shader.set_uniform("model_matrix", create_model_matrix(model_transform));
         model.draw(scene_shader);
 

@@ -157,7 +157,6 @@ void Model::draw(Shader& shader)
     {
         if (!mesh.buffered)
         {
-            std::cout << "Buffering mesh!\n";
             mesh.mesh.buffer();
             mesh.buffered = true;
         }
@@ -182,4 +181,9 @@ void Model::draw(Shader& shader)
         mesh.mesh.bind();
         mesh.mesh.draw();
     }
+}
+
+const std::vector<Model::ModelMesh>& Model::get_meshes() const
+{
+    return meshes_;
 }
