@@ -47,13 +47,22 @@ void HeightMap::set_base_height()
 {
     float base = 0;
 
-    float min = *std::min_element(heights.begin(), heights.end());
-    float min_diff = min - base;
+    float min_diff = min_height() - base;
 
     for (auto& h : heights)
     {
         h -= min_diff;
     }
+}
+
+float HeightMap::min_height() const
+{
+    return *std::min_element(heights.begin(), heights.end());
+}
+
+float HeightMap::max_height() const
+{
+    return *std::max_element(heights.begin(), heights.end());
 }
 
 void HeightMap::generate_terrain(const TerrainGenerationOptions& options)

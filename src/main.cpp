@@ -274,10 +274,13 @@ int main()
 
     light_transform.position = {20.0f, 5.0f, 20.0f};
 
+    // -----------------------------------
+    // ==== Camera Creation ====
+    // -----------------------------------
     PerspectiveCamera camera(window.getSize().x, window.getSize().y, 75.0f);
     // camera.transform.position = {80.0f, 1.0f, 35.0f};
-    camera.transform.rotation = {0.0f, 201.0f, 0.0f};
-    camera.transform.position = {15, 5, 15};
+    camera.transform.rotation = {0.0f, 100, 0.0f};
+    camera.transform.position = {15, height_map.max_height(), 15};
 
     // ----------------------------
     // ==== Load sound effects ====
@@ -357,15 +360,15 @@ int main()
             auto v3 = btv(vs[is[i + 2]].position);
             traingles_mesh.addTriangle(v1, v2, v3);
         }
-        ground.collision_shape = std::make_unique<btBvhTriangleMeshShape>(&traingles_mesh, true, true);
-
+        ground.collision_shape =
+            std::make_unique<btBvhTriangleMeshShape>(&traingles_mesh, true, true);
 
         btScalar mass = 0.0f;
         btVector3 ground_shape_local_inertia(0, 0, 0);
 
         btTransform ground_transform;
         ground_transform.setIdentity();
-        ground_transform.setOrigin({0,0, 0});
+        ground_transform.setOrigin({0, 0, 0});
 
         // Create the rigid body for the ground
         ground.motion_state = std::make_unique<btDefaultMotionState>(ground_transform);
@@ -457,29 +460,29 @@ int main()
                     float height = 50;
                     float width = 5;
                     float base = 50;
-                    float start = 0.45;
-                    for (float y = start; y < height; y++)
+                    float start = 50;
+                    for (float y = start; y < start + height; y++)
                     {
                         for (float x = base; x < base + width; x++)
                         {
                             add_dynamic_shape({x, y, base}, {0, 0, 0});
                         }
                     }
-                    for (float y = start; y < height; y++)
+                    for (float y = start; y < start + height; y++)
                     {
                         for (float x = base; x < base + width; x++)
                         {
                             add_dynamic_shape({x, y, base + width}, {0, 0, 0});
                         }
                     }
-                    for (float y = start; y < height; y++)
+                    for (float y = start; y < start + height; y++)
                     {
                         for (float z = base; z < base + width + 1; z++)
                         {
                             add_dynamic_shape({base - 1, y, z}, {0, 0, 0});
                         }
                     }
-                    for (float y = start; y < height; y++)
+                    for (float y = start; y < start + height; y++)
                     {
                         for (float z = base; z < base + width + 1; z++)
                         {
@@ -684,7 +687,7 @@ int main()
         fbo.bind();
         scene_shader.bind();
         glEnable(GL_DEPTH_TEST);
-        // glEnable(GL_CULL_FACE);
+        glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
 
         // ==== Render Terrain ====

@@ -122,7 +122,7 @@ namespace GUI
         static bool bt_wireframe = false;
         static bool bt_aabb = false;
 
-        static int gl_line_width = 1;
+        static GLfloat gl_line_width = 1;
 
         if (ImGui::Begin("Debug Rendering"))
         {
@@ -132,7 +132,7 @@ namespace GUI
             ImGui::Separator();
             ImGui::Text("Misc Debug Options");
             ImGui::Checkbox("Wireframe", &settings.wireframe);
-            if (ImGui::SliderInt("Line Width", &gl_line_width, 1, 16))
+            if (ImGui::SliderFloat("Line Width", &gl_line_width, 1.0f, 16.0f))
             {
                 glLineWidth(gl_line_width);
             }

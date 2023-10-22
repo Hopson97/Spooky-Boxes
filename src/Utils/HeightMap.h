@@ -26,5 +26,8 @@ struct HeightMap
 
     void set_base_height();
 
+    float min_height() const;
+    float max_height() const;
+
     void generate_terrain(const TerrainGenerationOptions& options);
 };
