@@ -10,6 +10,8 @@ struct TerrainGenerationOptions
 
     int octaves = 5;
     float offset = -45;
+
+    int seed = 523523;
 };
 
 struct HeightMap
@@ -21,6 +23,8 @@ struct HeightMap
 
     float get_height(int x, int z) const;
     void set_height(int x, int z, float height);
+
+    void set_base_height();
 
     void generate_terrain(const TerrainGenerationOptions& options);
 };

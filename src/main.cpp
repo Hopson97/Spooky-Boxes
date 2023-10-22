@@ -167,9 +167,18 @@ int main()
     // -----------------------------------------------------------
     auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    HeightMap height_map{128};
-    height_map.generate_terrain(TerrainGenerationOptions{});
+    HeightMap height_map{256};
+    {
+        TerrainGenerationOptions options;
+        options.amplitude = 125.0f;
+        options.roughness = 0.6f;
+        options.octaves = 7;
+        options.seed = rand();
+        std::cout << "Seed: " << options.seed << "\n";
 
+        height_map.generate_terrain(options);
+        height_map.set_base_height();
+    }
     auto terrain_mesh = generate_terrain_mesh(height_map);
     auto light_vertex_mesh = generate_cube_mesh({0.2f, 0.2f, 0.2f}, false);
     auto box_vertex_mesh = generate_cube_mesh({1.0f, 1.0f, 1.0f}, false);
@@ -333,10 +342,12 @@ int main()
     // -------------------------------------------------------
     // ==== Bullet3D Experiments: Create the ground plane ====
     // -------------------------------------------------------
+
+    // The triangle mesh must be kept alive so created in the outer scope
+    btTriangleMesh traingles_mesh;
     {
         PhysicsObject& ground = physics_objects.emplace_back();
 
-        btTriangleMesh traingles_mesh;
         auto& is = terrain_mesh.indices;
         auto& vs = terrain_mesh.vertices;
         for (int i = 0; i < terrain_mesh.indices.size(); i += 3)
@@ -354,7 +365,7 @@ int main()
 
         btTransform ground_transform;
         ground_transform.setIdentity();
-        ground_transform.setOrigin({50, -2, 50});
+        ground_transform.setOrigin({0,0, 0});
 
         // Create the rigid body for the ground
         ground.motion_state = std::make_unique<btDefaultMotionState>(ground_transform);
@@ -445,7 +456,7 @@ int main()
                 {
                     float height = 50;
                     float width = 5;
-                    float base = 20;
+                    float base = 50;
                     float start = 0.45;
                     for (float y = start; y < height; y++)
                     {
