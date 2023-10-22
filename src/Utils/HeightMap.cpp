@@ -1,11 +1,11 @@
 #include "HeightMap.h"
 
+#include <SFML/Graphics/Image.hpp>
 #include <glm/gtc/noise.hpp>
 
 namespace
 {
-    float get_height_at(const glm::ivec2& position,
-                        const TerrainGenerationOptions& options)
+    float get_height_at(const glm::ivec2& position, const TerrainGenerationOptions& options)
     {
         float value = 0;
         float acc = 0;
@@ -75,4 +75,24 @@ void HeightMap::generate_terrain(const TerrainGenerationOptions& options)
             set_height(x, z, height);
         }
     }
+}
+
+HeightMap HeightMap::from_image(const std::filesystem::path& path)
+{
+    sf::Image img;
+    img.loadFromFile(path.string());
+
+    assert(img.getSize().x == img.getSize().y);
+
+    HeightMap height_map{static_cast<int>(img.getSize().x)};
+
+    for (int z = 0; z < height_map.size; z++)
+    {
+        for (int x = 0; x < height_map.size; x++)
+        {
+            auto height = static_cast<float>(img.getPixel(x, z).r);
+            height_map.set_height(x, z, height);
+        }
+    }
+    return height_map;
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <vector>
 
 struct TerrainGenerationOptions
@@ -30,4 +31,6 @@ struct HeightMap
     float max_height() const;
 
     void generate_terrain(const TerrainGenerationOptions& options);
+
+    static HeightMap from_image(const std::filesystem::path& path);
 };

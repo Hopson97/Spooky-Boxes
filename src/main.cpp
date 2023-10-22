@@ -167,7 +167,10 @@ int main()
     // -----------------------------------------------------------
     auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    HeightMap height_map{128};
+    //HeightMap height_map{128};
+    auto height_map = HeightMap::from_image("assets/heightmaps/test2.png");
+    height_map.set_base_height();
+    if (false)
     {
         TerrainGenerationOptions options;
         options.amplitude = 125.0f;
