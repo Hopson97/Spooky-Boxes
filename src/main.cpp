@@ -26,6 +26,8 @@
 #include "Graphics/OpenGL/Shader.h"
 #include "Graphics/OpenGL/Texture.h"
 #include "Graphics/OpenGL/VertexArray.h"
+#include "Physics/PhysicsSystem.h"
+#include "Utils/HeightMap.h"
 #include "Utils/Maths.h"
 #include "Utils/Util.h"
 
@@ -48,13 +50,6 @@ namespace
             colour_texture.bind(0);
             specular_texture.bind(1);
         }
-    };
-
-    struct PhysicsObject
-    {
-        std::unique_ptr<btCollisionShape> collision_shape;
-        std::unique_ptr<btDefaultMotionState> motion_state;
-        std::unique_ptr<btRigidBody> body;
     };
 
     template <int Ticks>
@@ -172,7 +167,10 @@ int main()
     // -----------------------------------------------------------
     auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    auto terrain_mesh = generate_terrain_mesh(100);
+    HeightMap height_map{128};
+    height_map.generate_terrain(TerrainGenerationOptions{});
+
+    auto terrain_mesh = generate_terrain_mesh(height_map);
     auto light_vertex_mesh = generate_cube_mesh({0.2f, 0.2f, 0.2f}, false);
     auto box_vertex_mesh = generate_cube_mesh({1.0f, 1.0f, 1.0f}, false);
 
@@ -308,7 +306,6 @@ int main()
     // ------------------------------
     // ==== Bullet3D Experiments ====
     // ------------------------------
-
     // Contains the setup for memory and collisions
     btDefaultCollisionConfiguration collision_config;
 
@@ -331,12 +328,26 @@ int main()
     // btAlignedObjectArray<std::unique_ptr<btCollisionShape>> collision_shapes;
     std::vector<PhysicsObject> physics_objects;
 
+    auto btv = [&](const glm::vec3& v) { return btVector3{v.x, v.y, v.z}; };
+
     // -------------------------------------------------------
     // ==== Bullet3D Experiments: Create the ground plane ====
     // -------------------------------------------------------
     {
         PhysicsObject& ground = physics_objects.emplace_back();
-        ground.collision_shape = std::make_unique<btBoxShape>(btVector3{50, 2, 50});
+
+        btTriangleMesh traingles_mesh;
+        auto& is = terrain_mesh.indices;
+        auto& vs = terrain_mesh.vertices;
+        for (int i = 0; i < terrain_mesh.indices.size(); i += 3)
+        {
+            auto v1 = btv(vs[is[i]].position);
+            auto v2 = btv(vs[is[i + 1]].position);
+            auto v3 = btv(vs[is[i + 2]].position);
+            traingles_mesh.addTriangle(v1, v2, v3);
+        }
+        ground.collision_shape = std::make_unique<btBvhTriangleMeshShape>(&traingles_mesh, true, true);
+
 
         btScalar mass = 0.0f;
         btVector3 ground_shape_local_inertia(0, 0, 0);
@@ -369,10 +380,10 @@ int main()
         btTransform bt_transform;
         bt_transform.setIdentity();
         bt_transform.setOrigin({position.x, position.y, position.z});
-        
+
         box.motion_state = std::make_unique<btDefaultMotionState>(bt_transform);
-        btRigidBody::btRigidBodyConstructionInfo box_rb_info(mass, box.motion_state.get(),
-                                                             box.collision_shape.get(), local_inertia);
+        btRigidBody::btRigidBodyConstructionInfo box_rb_info(
+            mass, box.motion_state.get(), box.collision_shape.get(), local_inertia);
 
         box_rb_info.m_friction = 0.9f;
         box.body = std::make_unique<btRigidBody>(box_rb_info);
@@ -467,12 +478,13 @@ int main()
                 }
                 else if (e.key.code == sf::Keyboard::Space)
                 {
+                    const float force = 2.0f;
                     auto& f = camera.get_forwards();
-                    float x = f.x * 4000;
-                    float y = f.y * 4000;
-                    float z = f.z * 4000;
+                    float x = f.x * force;
+                    float y = f.y * force;
+                    float z = f.z * force;
 
-                    add_dynamic_shape(camera.transform.position, {x, y, z});
+                    add_dynamic_shape(camera.transform.position + f * 3.0f, {x, y, z});
                 }
             }
         }
@@ -554,6 +566,22 @@ int main()
             }
         }
 
+        // Iterate through collisions?
+        /*
+        for (int i = 0; i < dynamics_world.getDispatcher()->getNumManifolds(); i++)
+        {
+            auto manifold = dynamics_world.getDispatcher()->getManifoldByIndexInternal(i);
+            auto obj_a = manifold->getBody0();
+            auto obj_b = manifold->getBody1();
+            if (obj_a && obj_b)
+            {
+                if (manifold->getNumContacts() > 0)
+                {
+                    // collisoon...
+                }
+            }
+        }
+        */
         // -------------------------------
         // ==== Transform Calculations ====
         // -------------------------------

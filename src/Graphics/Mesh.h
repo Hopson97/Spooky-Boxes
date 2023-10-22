@@ -10,6 +10,7 @@
 
 #include "OpenGL/VertexArray.h"
 
+struct HeightMap;
 
 /// Basic vertex type for rendering
 struct BasicVertex
@@ -66,9 +67,10 @@ class Mesh
 using BasicMesh = Mesh<BasicVertex>;
 using DebugMesh = Mesh<DebugVertex>;
 
+
 [[nodiscard]] BasicMesh generate_quad_mesh(float w, float h);
 [[nodiscard]] BasicMesh generate_cube_mesh(const glm::vec3& size, bool repeat_texture);
-[[nodiscard]] BasicMesh generate_terrain_mesh(int size);
+[[nodiscard]] BasicMesh generate_terrain_mesh(const HeightMap& height_map);
 
 // IMPL for Mesh
 template <typename VertexType>
