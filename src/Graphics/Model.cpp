@@ -43,9 +43,9 @@ void Model::process_node(aiNode* node, const aiScene* scene)
     }
 }
 
-std::vector<int> Model::load_material(aiMaterial* material, aiTextureType texture_type)
+std::vector<size_t> Model::load_material(aiMaterial* material, aiTextureType texture_type)
 {
-    std::vector<int> textures;
+    std::vector<size_t> textures;
 
     for (unsigned i = 0; i < material->GetTextureCount(texture_type); i++)
     {

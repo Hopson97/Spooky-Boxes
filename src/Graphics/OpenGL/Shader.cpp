@@ -152,6 +152,12 @@ void Shader::set_uniform(const std::string& name, const glm::mat4& matrix)
                               glm::value_ptr(matrix));
 }
 
+void Shader::bind_uniform_block_index(const std::string& name, GLuint index)
+{
+    glUniformBlockBinding(program_, glGetUniformBlockIndex(program_, name.c_str()), index);
+}
+
+
 GLint Shader::get_uniform_location(const std::string& name)
 {
     auto itr = uniform_locations_.find(name);

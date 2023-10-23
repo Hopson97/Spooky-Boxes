@@ -45,7 +45,7 @@ class Model
   private:
     void process_node(aiNode* node, const aiScene* scene);
     ModelMesh process_mesh(aiMesh* mesh, const aiScene* scene);
-    std::vector<int> load_material(aiMaterial* material, aiTextureType texture_type);
+    std::vector<size_t> load_material(aiMaterial* material, aiTextureType texture_type);
 
 
     std::vector<ModelMesh> meshes_;

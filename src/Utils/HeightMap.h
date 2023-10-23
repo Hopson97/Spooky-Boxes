@@ -5,12 +5,12 @@
 
 struct TerrainGenerationOptions
 {
-    float roughness = 0.7;
+    float roughness = 0.7f;
     float smoothness = 350.0f;
     float amplitude = 80.0f;
 
     int octaves = 5;
-    float offset = -45;
+    float offset = -45.0f;
 
     int seed = 523523;
 };

@@ -128,6 +128,12 @@ namespace
             r.y = 359.9f;
         }
     }
+
+    struct SSBOMatrix
+    {
+        glm::mat4 projection_matrix;
+        glm::mat4 view_matrix;
+    };
 } // namespace
 
 int main()
@@ -167,14 +173,13 @@ int main()
     // -----------------------------------------------------------
     auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    //HeightMap height_map{128};
-    auto height_map = HeightMap::from_image("assets/heightmaps/test2.png");
+    HeightMap height_map{128};
+    //auto height_map = HeightMap::from_image("assets/heightmaps/test2.png");
     height_map.set_base_height();
-    if (false)
     {
         TerrainGenerationOptions options;
-        options.amplitude = 125.0f;
-        options.roughness = 0.6f;
+        options.amplitude = 200.0f;
+        options.roughness = 0.5f;
         options.octaves = 7;
         options.seed = rand();
         std::cout << "Seed: " << options.seed << "\n";
@@ -261,8 +266,8 @@ int main()
     std::vector<Transform> box_transforms;
     for (int i = 0; i < 40; i++)
     {
-        float x = static_cast<float>(rand() % height_map.size) + 3;
-        float z = static_cast<float>(rand() % height_map.size) + 3;
+        float x = static_cast<float>(rand() % (height_map.size - 2)) + 1;
+        float z = static_cast<float>(rand() % (height_map.size - 2)) + 1;
         float r = static_cast<float>(rand() % 360);
 
         box_transforms.push_back({{x, height_map.get_height(x, z), z}, {0.0f, r, 0}});
@@ -271,8 +276,8 @@ int main()
     std::vector<Transform> people_transforms;
     for (int i = 0; i < 50; i++)
     {
-        float x = static_cast<float>(rand() % height_map.size) + 3;
-        float z = static_cast<float>(rand() % height_map.size) + 3;
+        float x = static_cast<float>(rand() % (height_map.size - 2)) + 1;
+        float z = static_cast<float>(rand() % (height_map.size - 2)) + 1;
 
         people_transforms.push_back({{x, height_map.get_height(x, z), z}, {0.0f, 0.0, 0}});
     }
@@ -469,6 +474,47 @@ int main()
         }
     }
 
+/*
+
+        glCreateBuffers(1, &ubo);
+        glNamedBufferStorage(ubo, sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+        GLuint matrix_index = glGetUniformBlockIndex(scene_shader.program_, "matrix_data1");
+        glUniformBlockBinding(scene_shader.program_, matrix_index, 0);
+
+        glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
+        glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo, 0, sizeof(glm::mat4));
+
+
+        GLuint ubo2;
+        glCreateBuffers(1, &ubo2);
+        glNamedBufferStorage(ubo2, sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+        GLuint matrix_index2 = glGetUniformBlockIndex(scene_shader.program_, "matrix_data2");
+        glUniformBlockBinding(scene_shader.program_, matrix_index2, 1);
+
+        glBindBufferBase(GL_UNIFORM_BUFFER, 1, ubo2);
+        glBindBufferRange(GL_UNIFORM_BUFFER, 1, ubo2, 0, sizeof(glm::mat4));
+
+
+        ...
+
+        glNamedBufferSubData(ubo, 0, sizeof(view_matrix), &projection_matrix);
+        glNamedBufferSubData(ubo2, 0, sizeof(view_matrix), &view_matrix);
+
+    */
+
+    // --------------
+    // ==== SSBO ====
+    // --------------
+    BufferObject ubo;
+    ubo.create_store(sizeof(SSBOMatrix));
+    ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 0);
+    ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 0, sizeof(SSBOMatrix));
+
+    scene_shader.bind_uniform_block_index("matrix_data", 0);
+
+
     // -------------------
     // ==== Main Loop ====
     // -------------------
@@ -652,8 +698,14 @@ int main()
         // ------------------------------
         //
         // GBuffer can be used here for deferred lighting
-        scene_shader.set_uniform("projection_matrix", camera.get_projection());
-        scene_shader.set_uniform("view_matrix", camera.get_view_matrix());
+        //scene_shader.set_uniform("projection_matrix", camera.get_projection());
+        //scene_shader.set_uniform("view_matrix", camera.get_view_matrix());
+
+        SSBOMatrix uniform_matrices;
+        uniform_matrices.projection_matrix = camera.get_projection();
+        uniform_matrices.view_matrix = camera.get_view_matrix();
+
+        ubo.buffer_sub_data(0, uniform_matrices);
 
         scene_shader.set_uniform("material.diffuse0", 0);
         scene_shader.set_uniform("material.specular0", 1);

@@ -1,6 +1,5 @@
 #version 450 core
 
-
 layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec2 in_texture_coord;
 layout(location = 2) in vec3 in_normal;
@@ -9,10 +8,12 @@ out vec2 pass_texture_coord;
 out vec3 pass_normal;
 out vec3 pass_fragment_coord;
 
-uniform mat4 projection_matrix;
-uniform mat4 view_matrix;
-uniform mat4 model_matrix;
+layout(std140) uniform matrix_data {
+    mat4 projection_matrix;
+    mat4 view_matrix;
+};
 
+uniform mat4 model_matrix;
 
 void main() {
     vec4 world_position = model_matrix * vec4(in_position, 1.0);
