@@ -25,4 +25,6 @@ namespace GUI
 
     void debug_renderer_window(DebugRenderer& debug_renderer, Settings& setting);
 
+    void text_vec3(const std::string& text, const glm::vec3& vect);
+
 } // namespace GUI

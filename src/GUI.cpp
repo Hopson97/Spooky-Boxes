@@ -70,14 +70,11 @@ namespace GUI
     void debug_window(const glm::vec3& camera_position, const glm::vec3& camera_rotation,
                       Settings& settings)
     {
-        auto r = camera_rotation;
-        auto p = camera_position;
-
         // clang-format off
         if (ImGui::Begin("Debug Window"))
         {
-            ImGui::Text("Position: (%f, %f, %f)", p.x, p.y, p.z);
-            ImGui::Text("Rotation: (%f, %f, %f)", r.x, r.y, r.z);
+            text_vec3("Position", camera_position);
+            text_vec3("Rotation", camera_rotation);
 
             ImGui::SliderFloat("Material Shine", &settings.material_shine, 1.0f, 64.0f);
 
@@ -147,6 +144,12 @@ namespace GUI
                        (bt_aabb ? DebugRenderer::DBG_DrawAabb : 0);
         debug_renderer.setDebugMode(draw_options);
         ImGui::End();
+    }
+
+    void text_vec3(const std::string& text, const glm::vec3& vect)
+    {
+        auto output = text + ": (%.2f, %.2f, %.2f)";
+        ImGui::Text(output.c_str(), vect.x, vect.y, vect.z);
     }
 
 } // namespace GUI
