@@ -128,11 +128,6 @@ namespace
         }
     }
 
-    struct SSBOMatrix
-    {
-        glm::mat4 projection_matrix;
-        glm::mat4 view_matrix;
-    };
 } // namespace
 
 int main()
@@ -461,71 +456,38 @@ int main()
     DebugRenderer debug_renderer(camera);
     dynamics_world.setDebugDrawer(&debug_renderer);
 
-    for (float y = 0.5; y < 10; y++)
-    {
-        for (float x = 2; x < 3; x++)
-        {
-            // add_dynamic_shape({x, y, 1}, {0, 0, 0});
-        }
-    }
-
-    /*
-
-            glCreateBuffers(1, &ubo);
-            glNamedBufferStorage(ubo, sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
-
-            GLuint matrix_index = glGetUniformBlockIndex(scene_shader.program_,
-       "matrix_data1"); glUniformBlockBinding(scene_shader.program_, matrix_index, 0);
-
-            glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
-            glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo, 0, sizeof(glm::mat4));
-
-
-            GLuint ubo2;
-            glCreateBuffers(1, &ubo2);
-            glNamedBufferStorage(ubo2, sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
-
-            GLuint matrix_index2 = glGetUniformBlockIndex(scene_shader.program_,
-       "matrix_data2"); glUniformBlockBinding(scene_shader.program_, matrix_index2, 1);
-
-            glBindBufferBase(GL_UNIFORM_BUFFER, 1, ubo2);
-            glBindBufferRange(GL_UNIFORM_BUFFER, 1, ubo2, 0, sizeof(glm::mat4));
-
-
-            ...
-
-            glNamedBufferSubData(ubo, 0, sizeof(view_matrix), &projection_matrix);
-            glNamedBufferSubData(ubo2, 0, sizeof(view_matrix), &view_matrix);
-
-        */
-
     // --------------
-    // ==== SSBO ====
+    // ==== UBOs ====
     // --------------
-    BufferObject ubo;
-    ubo.create_store(sizeof(glm::mat4) * 2);
-    ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 0);
-    ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 0, sizeof(glm::mat4) * 2);
-
-    scene_shader.bind_uniform_block_index("matrix_data", 0);
+    BufferObject matrix_ubo;
+    matrix_ubo.create_store(sizeof(glm::mat4) * 2);
+    matrix_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 0);
+    matrix_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 0, sizeof(glm::mat4) * 2);
 
     auto SIZE = sizeof(DirectionalLight) + sizeof(SpotLight);
     BufferObject light_ubo;
-    light_ubo.create_store(SIZE);
+    light_ubo.create_store(sizeof(DirectionalLight));
     light_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 1);
-    light_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, SIZE);
+    light_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, sizeof(DirectionalLight));
+
+   // auto SIZE = sizeof(DirectionalLight) + sizeof(SpotLight);
+
 
     BufferObject pointlights_ubo;
     pointlights_ubo.create_store(sizeof(PointLight) * 5);
     pointlights_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 2);
     pointlights_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 2, sizeof(PointLight) * 5);
 
+    BufferObject flashlight_ubo;
+    flashlight_ubo.create_store(sizeof(SpotLight));
+    flashlight_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 3);
+    flashlight_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 3, sizeof(SpotLight));
+
+    // Each shader must be bound to the specific index
+    scene_shader.bind_uniform_block_index("matrix_data", 0);
     scene_shader.bind_uniform_block_index("Light", 1);
     scene_shader.bind_uniform_block_index("PointLights", 2);
-
-    std::cout << "Size of DirectionalLight: " << sizeof(DirectionalLight) << '\n'
-              << "Size of SpotLight:        " << sizeof(SpotLight) << '\n'
-              << "Size of Point Light:      " << sizeof(PointLight) << '\n';
+    scene_shader.bind_uniform_block_index("Flashlight", 3);
 
     // -------------------
     // ==== Main Loop ====
@@ -705,19 +667,14 @@ int main()
         // -------------------------------
         // View/ Camera matrix
         camera.update();
-        // Model matrices...
-        auto terrain_mat = create_model_matrix(terrain_transform);
-        auto light_mat = create_model_matrix(light_transform);
 
         // ------------------------------
         // ==== Set up shader states ====
         // ------------------------------
         //
         // GBuffer can be used here for deferred lighting
-        // scene_shader.set_uniform("projection_matrix", camera.get_projection());
-        // scene_shader.set_uniform("view_matrix", camera.get_view_matrix());
-        ubo.buffer_sub_data(0, camera.get_projection());
-        ubo.buffer_sub_data(sizeof(camera.get_view_matrix()), camera.get_view_matrix());
+        matrix_ubo.buffer_sub_data(0, camera.get_projection());
+        matrix_ubo.buffer_sub_data(sizeof(camera.get_view_matrix()), camera.get_view_matrix());
 
         scene_shader.set_uniform("material.diffuse0", 0);
         scene_shader.set_uniform("material.specular0", 1);
@@ -780,19 +737,32 @@ int main()
         point_lights[4].position = glm::vec4(light_transform.position, 1.0f);
         pointlights_ubo.buffer_sub_data(0, point_lights);
 
+        
         SpotLight s = settings.lights.spot_light;
-        s.position = glm::vec4(camera.transform.position, 0.0f);
-        s.direction = glm::vec4(camera.get_forwards(), 0.0f);
-        s.cutoff = glm::cos(glm::radians(settings.lights.spot_light.cutoff));
-        light_ubo.buffer_sub_data(sizeof(DirectionalLight), s);
-
+        s.cutoff        = glm::cos(glm::radians(settings.lights.spot_light.cutoff));
+        s.position      = glm::vec4(camera.transform.position, 0.0f);
+        s.direction     = glm::vec4(camera.get_forwards(), 0.0f);
+        flashlight_ubo.buffer_sub_data(0, s);
+        
+        /*
+        scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.lights.spot_light.cutoff)));
+        scene_shader.set_uniform("spot_light.position",     glm::vec4(camera.transform.position, 0.0f));
+        scene_shader.set_uniform("spot_light.direction",    glm::vec4(camera.get_forwards(), 1.0f));
+        upload_base_light(scene_shader, settings.lights.spot_light, "spot_light");
+        upload_attenuation(scene_shader, settings.lights.spot_light.att, "spot_light");
+        */
         // Set the spot light shader uniforms
-        //scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.lights.spot_light.cutoff)));
-       // scene_shader.set_uniform("spot_light.position",     glm::vec4(camera.transform.position, 0.0f));
-        //scene_shader.set_uniform("spot_light.direction",    glm::vec4(camera.get_forwards(), 1.0f));
-        //upload_base_light(scene_shader,                     settings.lights.spot_light, "spot_light");
-       // upload_attenuation(scene_shader,                    settings.lights.spot_light.att, "spot_light");
+
         // clang-format on
+
+        /*
+        if (ImGui::Begin("ah")) {
+            GUI::text_vec3("Position", s.position);
+            GUI::text_vec3("Direction", s.direction);
+        }
+        ImGui::End();
+        */
+
 
         scene_shader.set_uniform("is_light", false);
 
@@ -822,7 +792,7 @@ int main()
         {
             create_material.bind();
         }
-
+        auto terrain_mat = create_model_matrix(terrain_transform);
         scene_shader.set_uniform("model_matrix", terrain_mat);
         terrain_mesh.bind();
         terrain_mesh.draw();
@@ -866,6 +836,7 @@ int main()
 
         // ==== Render Floating Light ====
         scene_shader.set_uniform("is_light", true);
+        auto light_mat = create_model_matrix(light_transform);
         scene_shader.set_uniform("model_matrix", light_mat);
         light_vertex_mesh.bind();
         light_vertex_mesh.draw();

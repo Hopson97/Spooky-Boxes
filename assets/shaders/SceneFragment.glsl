@@ -56,15 +56,19 @@ struct SpotLight
 layout(std140) uniform Light 
 {
     DirectionalLight dir_light;
+};
+
+layout(std140) uniform FlashLight 
+{
     SpotLight spot_light;
 };
+
 
 layout(std140) uniform PointLights 
 {
     PointLight point_lights[MAX_LIGHTS];
     
 };
-
 
 uniform Material material;
 uniform int light_count;
