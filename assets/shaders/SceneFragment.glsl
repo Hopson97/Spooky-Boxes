@@ -56,10 +56,6 @@ struct SpotLight
 layout(std140) uniform Light 
 {
     DirectionalLight dir_light;
-};
-
-layout(std140) uniform USpotLight 
-{
     SpotLight spot_light;
 };
 

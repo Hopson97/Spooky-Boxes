@@ -16,7 +16,6 @@ struct Attenuation
     float constant = 1.0f;
     float linear = 0.045f;
     float exponant = 0.0075f;
-    float padding_ = 0.0f;
 };
 
 struct DirectionalLight : public LightBase

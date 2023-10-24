@@ -114,8 +114,7 @@ namespace
         auto change = sf::Mouse::getPosition(window) - last_mouse;
         r.x -= static_cast<float>(change.y * 0.35);
         r.y += static_cast<float>(change.x * 0.35);
-        sf::Mouse::setPosition({(int)window.getSize().x / 2, (int)window.getSize().y / 2},
-                               window);
+        sf::Mouse::setPosition({(int)window.getSize().x / 2, (int)window.getSize().y / 2}, window);
         last_mouse = sf::Mouse::getPosition(window);
 
         r.x = glm::clamp(r.x, -89.9f, 89.9f);
@@ -201,13 +200,10 @@ int main()
     // ------------------------------------
     // ==== Create the OpenGL Textures ====
     // ------------------------------------
-    Material person_material("assets/textures/person.png",
-                             "assets/textures/person_specular.png");
-    Material grass_material("assets/textures/grass_03.png",
-                            "assets/textures/grass_specular.png");
+    Material person_material("assets/textures/person.png", "assets/textures/person_specular.png");
+    Material grass_material("assets/textures/grass_03.png", "assets/textures/grass_specular.png");
 
-    Material create_material("assets/textures/crate.png",
-                             "assets/textures/crate_specular.png");
+    Material create_material("assets/textures/crate.png", "assets/textures/crate_specular.png");
 
     // ---------------------------------------
     // ==== Create the OpenGL Framebuffer ====
@@ -381,9 +377,9 @@ int main()
         // Create the rigid body for the ground
         ground.motion_state = std::make_unique<btDefaultMotionState>(ground_transform);
 
-        btRigidBody::btRigidBodyConstructionInfo ground_rb_info(
-            mass, ground.motion_state.get(), ground.collision_shape.get(),
-            ground_shape_local_inertia);
+        btRigidBody::btRigidBodyConstructionInfo ground_rb_info(mass, ground.motion_state.get(),
+                                                                ground.collision_shape.get(),
+                                                                ground_shape_local_inertia);
         ground_rb_info.m_friction = 1.25f;
         ground.body = std::make_unique<btRigidBody>(ground_rb_info);
         dynamics_world.addRigidBody(ground.body.get());
@@ -427,9 +423,8 @@ int main()
         // Create the rigid body for the ground
         mesh_object.motion_state = std::make_unique<btDefaultMotionState>(transform);
 
-        btRigidBody::btRigidBodyConstructionInfo rb_info(mass, mesh_object.motion_state.get(),
-                                                         mesh_object.collision_shape.get(),
-                                                         local_inertia);
+        btRigidBody::btRigidBodyConstructionInfo rb_info(
+            mass, mesh_object.motion_state.get(), mesh_object.collision_shape.get(), local_inertia);
         rb_info.m_friction = 1.25f;
         mesh_object.body = std::make_unique<btRigidBody>(rb_info);
 
@@ -513,18 +508,21 @@ int main()
 
     scene_shader.bind_uniform_block_index("matrix_data", 0);
 
+    auto SIZE = sizeof(DirectionalLight) + sizeof(SpotLight);
     BufferObject light_ubo;
-    light_ubo.create_store(sizeof(DirectionalLight));
+    light_ubo.create_store(SIZE);
     light_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 1);
-    light_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, sizeof(DirectionalLight));
-
-    BufferObject spotlight_ubo;
-    spotlight_ubo.create_store(sizeof(SpotLight));
-    spotlight_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 1);
-    spotlight_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, sizeof(SpotLight));
-
+    light_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, SIZE);
+    /*
+        BufferObject spotlight_ubo;
+        spotlight_ubo.create_store(sizeof(SpotLight));
+        spotlight_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 1);
+        spotlight_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, sizeof(SpotLight));
+    */
     scene_shader.bind_uniform_block_index("Light", 1);
-    scene_shader.bind_uniform_block_index("USpotLight", 1);
+
+    std::cout << "Size of DirectionalLight: " << sizeof(DirectionalLight) << '\n'
+              << "Size of SpotLight:        " << sizeof(SpotLight) << '\n';
 
     // -------------------
     // ==== Main Loop ====
@@ -770,7 +768,7 @@ int main()
         s.position = glm::vec4(camera.transform.position, 0.0f);
         s.direction = glm::vec4(camera.get_forwards(), 0.0f);
         s.cutoff = glm::cos(glm::radians(settings.lights.spot_light.cutoff));
-        spotlight_ubo.buffer_sub_data(0, s);
+        light_ubo.buffer_sub_data(sizeof(DirectionalLight), s);
 
         // Set the spot light shader uniforms
         //scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.lights.spot_light.cutoff)));
