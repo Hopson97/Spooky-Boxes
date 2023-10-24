@@ -507,11 +507,18 @@ int main()
     // ==== SSBO ====
     // --------------
     BufferObject ubo;
-    ubo.create_store(sizeof(SSBOMatrix));
+    ubo.create_store(sizeof(glm::mat4) * 2);
     ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 0);
-    ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 0, sizeof(SSBOMatrix));
+    ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 0, sizeof(glm::mat4) * 2);
 
     scene_shader.bind_uniform_block_index("matrix_data", 0);
+
+    BufferObject light_ubo;
+    light_ubo.create_store(sizeof(DirectionalLight));
+    light_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 1);
+    light_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, sizeof(DirectionalLight));
+
+    scene_shader.bind_uniform_block_index("Light", 1);
 
     // -------------------
     // ==== Main Loop ====
@@ -731,8 +738,10 @@ int main()
         };
 
         // Set the directional light shader uniforms
-        scene_shader.set_uniform("dir_light.direction", settings.lights.dir_light.direction);
-        upload_base_light(scene_shader,                 settings.lights.dir_light, "dir_light");
+        DirectionalLight l = settings.lights.dir_light;
+        light_ubo.buffer_sub_data(0, l);
+        //scene_shader.set_uniform("dir_light.direction", settings.lights.dir_light.direction);
+        //upload_base_light(scene_shader,                 settings.lights.dir_light, "dir_light");
 
         // Set the point light shader uniforms
         scene_shader.set_uniform("point_lights[0].position", glm::vec4(light_transform.position, 1.0f));

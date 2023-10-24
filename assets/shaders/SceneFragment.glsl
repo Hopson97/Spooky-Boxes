@@ -53,8 +53,14 @@ struct SpotLight
     float cutoff;
 };
 
+layout(std140) uniform Light 
+{
+    DirectionalLight dir_light;
+};
+
+
 uniform Material material;
-uniform DirectionalLight dir_light;
+
 uniform SpotLight spot_light;
 uniform PointLight point_lights[MAX_LIGHTS];
 uniform int light_count;
