@@ -174,14 +174,14 @@ int main()
     auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
     HeightMap height_map{128};
-    //auto height_map = HeightMap::from_image("assets/heightmaps/test2.png");
+    // auto height_map = HeightMap::from_image("assets/heightmaps/test2.png");
     height_map.set_base_height();
     {
         TerrainGenerationOptions options;
         options.amplitude = 100.0f;
         options.roughness = 0.6f;
         options.octaves = 7;
-        options.seed = rand();
+        options.seed = rand() % 50000;
         std::cout << "Seed: " << options.seed << "\n";
 
         height_map.generate_terrain(options);
@@ -263,14 +263,13 @@ int main()
     model_transform.position = {50, height_map.get_height(50, 50), 50};
     model_transform.scale = {2, 2, 2};
 
-    std::vector<Transform> box_transforms;
+    std::vector<glm::vec4> point_lights;
     for (int i = 0; i < 40; i++)
     {
         float x = static_cast<float>(rand() % (height_map.size - 2)) + 1;
         float z = static_cast<float>(rand() % (height_map.size - 2)) + 1;
-        float r = static_cast<float>(rand() % 360);
 
-        box_transforms.push_back({{x, height_map.get_height(x, z), z}, {0.0f, r, 0}});
+        point_lights.push_back({x, height_map.get_height(x, z), z, 0.0f});
     }
 
     std::vector<Transform> people_transforms;
@@ -362,7 +361,7 @@ int main()
         // Create the collision mesh
         auto& is = terrain_mesh.indices;
         auto& vs = terrain_mesh.vertices;
-        for (int i = 0; i < terrain_mesh.indices.size(); i += 3)
+        for (int i = 0; i < (int)terrain_mesh.indices.size(); i += 3)
         {
             auto v1 = to_btvec3(vs[is[i]].position);
             auto v2 = to_btvec3(vs[is[i + 1]].position);
@@ -405,7 +404,7 @@ int main()
 
         auto& is = mesh.indices;
         auto& vs = mesh.vertices;
-        for (int i = 0; i < mesh.indices.size(); i += 3)
+        for (int i = 0; i < (int)mesh.indices.size(); i += 3)
         {
             auto v1 = to_btvec3(vs[is[i]].position);
             auto v2 = to_btvec3(vs[is[i + 1]].position);
@@ -474,35 +473,35 @@ int main()
         }
     }
 
-/*
+    /*
 
-        glCreateBuffers(1, &ubo);
-        glNamedBufferStorage(ubo, sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
+            glCreateBuffers(1, &ubo);
+            glNamedBufferStorage(ubo, sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
-        GLuint matrix_index = glGetUniformBlockIndex(scene_shader.program_, "matrix_data1");
-        glUniformBlockBinding(scene_shader.program_, matrix_index, 0);
+            GLuint matrix_index = glGetUniformBlockIndex(scene_shader.program_,
+       "matrix_data1"); glUniformBlockBinding(scene_shader.program_, matrix_index, 0);
 
-        glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
-        glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo, 0, sizeof(glm::mat4));
-
-
-        GLuint ubo2;
-        glCreateBuffers(1, &ubo2);
-        glNamedBufferStorage(ubo2, sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
-
-        GLuint matrix_index2 = glGetUniformBlockIndex(scene_shader.program_, "matrix_data2");
-        glUniformBlockBinding(scene_shader.program_, matrix_index2, 1);
-
-        glBindBufferBase(GL_UNIFORM_BUFFER, 1, ubo2);
-        glBindBufferRange(GL_UNIFORM_BUFFER, 1, ubo2, 0, sizeof(glm::mat4));
+            glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
+            glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo, 0, sizeof(glm::mat4));
 
 
-        ...
+            GLuint ubo2;
+            glCreateBuffers(1, &ubo2);
+            glNamedBufferStorage(ubo2, sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
-        glNamedBufferSubData(ubo, 0, sizeof(view_matrix), &projection_matrix);
-        glNamedBufferSubData(ubo2, 0, sizeof(view_matrix), &view_matrix);
+            GLuint matrix_index2 = glGetUniformBlockIndex(scene_shader.program_,
+       "matrix_data2"); glUniformBlockBinding(scene_shader.program_, matrix_index2, 1);
 
-    */
+            glBindBufferBase(GL_UNIFORM_BUFFER, 1, ubo2);
+            glBindBufferRange(GL_UNIFORM_BUFFER, 1, ubo2, 0, sizeof(glm::mat4));
+
+
+            ...
+
+            glNamedBufferSubData(ubo, 0, sizeof(view_matrix), &projection_matrix);
+            glNamedBufferSubData(ubo2, 0, sizeof(view_matrix), &view_matrix);
+
+        */
 
     // --------------
     // ==== SSBO ====
@@ -513,7 +512,6 @@ int main()
     ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 0, sizeof(SSBOMatrix));
 
     scene_shader.bind_uniform_block_index("matrix_data", 0);
-
 
     // -------------------
     // ==== Main Loop ====
@@ -586,7 +584,8 @@ int main()
                     float y = f.y * settings.throw_force;
                     float z = f.z * settings.throw_force;
 
-                    add_dynamic_shape(camera.transform.position + f * 3.0f, {x, y, z}, settings.throw_mass);
+                    add_dynamic_shape(camera.transform.position + f * 3.0f, {x, y, z},
+                                      settings.throw_mass);
                 }
             }
         }
@@ -698,8 +697,8 @@ int main()
         // ------------------------------
         //
         // GBuffer can be used here for deferred lighting
-        //scene_shader.set_uniform("projection_matrix", camera.get_projection());
-        //scene_shader.set_uniform("view_matrix", camera.get_view_matrix());
+        // scene_shader.set_uniform("projection_matrix", camera.get_projection());
+        // scene_shader.set_uniform("view_matrix", camera.get_view_matrix());
         ubo.buffer_sub_data(0, camera.get_projection());
         ubo.buffer_sub_data(sizeof(camera.get_view_matrix()), camera.get_view_matrix());
 
@@ -736,16 +735,17 @@ int main()
         upload_base_light(scene_shader,                 settings.lights.dir_light, "dir_light");
 
         // Set the point light shader uniforms
-        scene_shader.set_uniform("point_lights[0].position", light_transform.position);
+        scene_shader.set_uniform("point_lights[0].position", glm::vec4(light_transform.position, 1.0f));
         upload_base_light(scene_shader,                     settings.lights.point_light, "point_lights[0]");
         upload_attenuation(scene_shader,                    settings.lights.point_light.att, "point_lights[0]");
         for (int i = 0; i < 5; i++)
         {
-            auto pos = box_transforms[i].position;
+            auto pos = point_lights[i];
             pos.y += 1.0f;
             auto location = "point_lights[" + std::to_string(i + 1) + "]";
-
             scene_shader.set_uniform(location + ".position", pos);
+
+
             upload_base_light(scene_shader,                     settings.lights.point_light, location);
             upload_attenuation(scene_shader,                    settings.lights.point_light.att, location);
         }
@@ -755,8 +755,8 @@ int main()
 
         // Set the spot light shader uniforms
         scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.lights.spot_light.cutoff)));
-        scene_shader.set_uniform("spot_light.position",     camera.transform.position);
-        scene_shader.set_uniform("spot_light.direction",    camera.get_forwards());
+        scene_shader.set_uniform("spot_light.position",     glm::vec4(camera.transform.position, 0.0f));
+        scene_shader.set_uniform("spot_light.direction",    glm::vec4(camera.get_forwards(), 1.0f));
         upload_base_light(scene_shader,                     settings.lights.spot_light, "spot_light");
         upload_attenuation(scene_shader,                    settings.lights.spot_light.att, "spot_light");
         // clang-format on
@@ -812,7 +812,6 @@ int main()
         billboard_vertex_array.bind();
         for (auto& transform : people_transforms)
         {
-
             // Draw billboard
             auto pi = static_cast<float>(std::numbers::pi);
             auto xd = transform.position.x - camera.transform.position.x;
@@ -892,7 +891,6 @@ int main()
     for (int i = dynamics_world.getNumCollisionObjects() - 1; i >= 0; i--)
     {
         btCollisionObject* obj = dynamics_world.getCollisionObjectArray()[i];
-        btRigidBody* body = btRigidBody::upcast(obj);
         dynamics_world.removeCollisionObject(obj);
     }
 }
