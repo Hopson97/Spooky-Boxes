@@ -260,7 +260,7 @@ int main()
     model_transform.scale = {2, 2, 2};
 
     std::array<PointLight, 5> point_lights;
-    for (int i = 0; i < 40; i++)
+    for (int i = 0; i < 5; i++)
     {
         PointLight p = settings.lights.point_light;
         float x = static_cast<float>(rand() % (height_map.size - 2)) + 1;
@@ -518,7 +518,7 @@ int main()
     BufferObject pointlights_ubo;
     pointlights_ubo.create_store(sizeof(PointLight) * 5);
     pointlights_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 2);
-    pointlights_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 2, sizeof(SpotLight) * 5);
+    pointlights_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 2, sizeof(PointLight) * 5);
 
     scene_shader.bind_uniform_block_index("Light", 1);
     scene_shader.bind_uniform_block_index("PointLights", 2);
@@ -754,21 +754,30 @@ int main()
         //upload_base_light(scene_shader,                 settings.lights.dir_light, "dir_light");
 
         // Set the point light shader uniforms
-        //scene_shader.set_uniform("point_lights[0].position", glm::vec4(light_transform.position, 1.0f));
-        //upload_base_light(scene_shader,                     settings.lights.point_light, "point_lights[0]");
-        //upload_attenuation(scene_shader,                    settings.lights.point_light.att, "point_lights[0]");
-        //for (int i = 0; i < 5; i++)
-        //{
-        //    auto pos = point_lights[i];
-        //    pos.position += 1.0f;
-        //    auto location = "point_lights[" + std::to_string(i + 1) + "]";
-        //    scene_shader.set_uniform(location + ".position", pos.position);
-//
-//
-        //    upload_base_light(scene_shader,                     settings.lights.point_light, location);
-        //    upload_attenuation(scene_shader,                    settings.lights.point_light.att, location);
-        //}
+        
+        /*
+        scene_shader.set_uniform("point_lights[0].position", glm::vec4(light_transform.position, 1.0f));
+        upload_base_light(scene_shader,                     settings.lights.point_light, "point_lights[0]");
+        upload_attenuation(scene_shader,                    settings.lights.point_light.att, "point_lights[0]");
+        for (int i = 0; i < 5; i++)
+        {
+            auto pos = point_lights[i];
+            pos.position += 1.0f;
+            auto location = "point_lights[" + std::to_string(i + 1) + "]";
+            scene_shader.set_uniform(location + ".position", pos.position);
+        
+        
+            upload_base_light(scene_shader,                     settings.lights.point_light, location);
+            upload_attenuation(scene_shader,                    settings.lights.point_light.att, location);
+        }
+        */
         scene_shader.set_uniform("light_count", 5);
+        for (auto& light : point_lights) {
+            auto p = light.position;
+            light = settings.lights.point_light;
+            light.position = p;
+        }
+        point_lights[4].position = glm::vec4(light_transform.position, 1.0f);
         pointlights_ubo.buffer_sub_data(0, point_lights);
 
         SpotLight s = settings.lights.spot_light;
@@ -852,10 +861,14 @@ int main()
             billboard_vertex_array.draw();
         }
 
+        scene_shader.set_uniform("model_matrix", create_model_matrix(model_transform));
+        model.draw(scene_shader);
+
         // ==== Render Floating Light ====
         scene_shader.set_uniform("is_light", true);
         scene_shader.set_uniform("model_matrix", light_mat);
         light_vertex_mesh.bind();
+        light_vertex_mesh.draw();
         for (auto& light : point_lights)
         {
             glm::mat4 m{1.0f};
@@ -863,9 +876,6 @@ int main()
             scene_shader.set_uniform("model_matrix", m);
             light_vertex_mesh.draw();
         }
-
-        scene_shader.set_uniform("model_matrix", create_model_matrix(model_transform));
-        model.draw(scene_shader);
 
         // Render debug stuff
         dynamics_world.debugDrawWorld();

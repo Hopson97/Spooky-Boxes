@@ -32,9 +32,9 @@ struct PointLight : public LightBase
 
 struct SpotLight : public LightBase
 {
-    glm::vec4 direction = {0, -1, 0, 0};
+    glm::vec4 direction = {1, 0, 0, 0};
     glm::vec4 position = {0, 0, 0, 0};
     Attenuation att;
 
-    float cutoff = 12.5;
+    float cutoff = 2.0f;
 };
