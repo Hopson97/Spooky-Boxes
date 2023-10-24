@@ -178,8 +178,8 @@ int main()
     height_map.set_base_height();
     {
         TerrainGenerationOptions options;
-        options.amplitude = 200.0f;
-        options.roughness = 0.5f;
+        options.amplitude = 100.0f;
+        options.roughness = 0.6f;
         options.octaves = 7;
         options.seed = rand();
         std::cout << "Seed: " << options.seed << "\n";
@@ -700,12 +700,8 @@ int main()
         // GBuffer can be used here for deferred lighting
         //scene_shader.set_uniform("projection_matrix", camera.get_projection());
         //scene_shader.set_uniform("view_matrix", camera.get_view_matrix());
-
-        SSBOMatrix uniform_matrices;
-        uniform_matrices.projection_matrix = camera.get_projection();
-        uniform_matrices.view_matrix = camera.get_view_matrix();
-
-        ubo.buffer_sub_data(0, uniform_matrices);
+        ubo.buffer_sub_data(0, camera.get_projection());
+        ubo.buffer_sub_data(sizeof(camera.get_view_matrix()), camera.get_view_matrix());
 
         scene_shader.set_uniform("material.diffuse0", 0);
         scene_shader.set_uniform("material.specular0", 1);
@@ -736,13 +732,13 @@ int main()
         };
 
         // Set the directional light shader uniforms
-        scene_shader.set_uniform("dir_light.direction", settings.dir_light.direction);
-        upload_base_light(scene_shader,                 settings.dir_light, "dir_light");
+        scene_shader.set_uniform("dir_light.direction", settings.lights.dir_light.direction);
+        upload_base_light(scene_shader,                 settings.lights.dir_light, "dir_light");
 
         // Set the point light shader uniforms
         scene_shader.set_uniform("point_lights[0].position", light_transform.position);
-        upload_base_light(scene_shader,                     settings.point_light, "point_lights[0]");
-        upload_attenuation(scene_shader,                    settings.point_light.att, "point_lights[0]");
+        upload_base_light(scene_shader,                     settings.lights.point_light, "point_lights[0]");
+        upload_attenuation(scene_shader,                    settings.lights.point_light.att, "point_lights[0]");
         for (int i = 0; i < 5; i++)
         {
             auto pos = box_transforms[i].position;
@@ -750,19 +746,19 @@ int main()
             auto location = "point_lights[" + std::to_string(i + 1) + "]";
 
             scene_shader.set_uniform(location + ".position", pos);
-            upload_base_light(scene_shader,                     settings.point_light, location);
-            upload_attenuation(scene_shader,                    settings.point_light.att, location);
+            upload_base_light(scene_shader,                     settings.lights.point_light, location);
+            upload_attenuation(scene_shader,                    settings.lights.point_light.att, location);
         }
         scene_shader.set_uniform("light_count", 5);
 
 
 
         // Set the spot light shader uniforms
-        scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.spot_light.cutoff)));
+        scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.lights.spot_light.cutoff)));
         scene_shader.set_uniform("spot_light.position",     camera.transform.position);
         scene_shader.set_uniform("spot_light.direction",    camera.get_forwards());
-        upload_base_light(scene_shader,                     settings.spot_light, "spot_light");
-        upload_attenuation(scene_shader,                    settings.spot_light.att, "spot_light");
+        upload_base_light(scene_shader,                     settings.lights.spot_light, "spot_light");
+        upload_attenuation(scene_shader,                    settings.lights.spot_light.att, "spot_light");
         // clang-format on
 
         scene_shader.set_uniform("is_light", false);

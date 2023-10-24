@@ -88,28 +88,28 @@ namespace GUI
 
             ImGui::PushID("DirLight");
             ImGui::Text("Directional light");
-            if (ImGui::SliderFloat3("Direction", &settings.dir_light.direction[0], -1.0, 1.0))
+            if (ImGui::SliderFloat3("Direction", &settings.lights.dir_light.direction[0], -1.0, 1.0))
             {
-                settings.dir_light.direction = glm::normalize(settings.dir_light.direction);
+                settings.lights.dir_light.direction = glm::normalize(settings.lights.dir_light.direction);
             }
-            base_light_widgets(settings.dir_light);
+            base_light_widgets(settings.lights.dir_light);
             ImGui::PopID();
 
             ImGui::Separator();
 
             ImGui::PushID("PointLight");
             ImGui::Text("Point light");
-            base_light_widgets(settings.point_light);
-            attenuation_widgets(settings.point_light.att);
+            base_light_widgets(settings.lights.point_light);
+            attenuation_widgets(settings.lights.point_light.att);
             ImGui::PopID();
 
             ImGui::Separator();
 
             ImGui::PushID("SpotLight");
             ImGui::Text("Spot light");
-            ImGui::SliderFloat("Cutoff", &settings.spot_light.cutoff, 0.0, 90.0f);
-            base_light_widgets(settings.spot_light);
-            attenuation_widgets(settings.spot_light.att);
+            ImGui::SliderFloat("Cutoff", &settings.lights.spot_light.cutoff, 0.0, 90.0f);
+            base_light_widgets(settings.lights.spot_light);
+            attenuation_widgets(settings.lights.spot_light.att);
             ImGui::PopID();
 
             ImGui::SliderFloat("Throw Force", &settings.throw_force, 0.0, 10000.0f);

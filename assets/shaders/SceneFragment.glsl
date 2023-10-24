@@ -17,7 +17,7 @@ struct Material
 
 struct LightBase 
 {
-    vec3 colour;
+    vec4 colour;
     float ambient_intensity;
     float diffuse_intensity;
     float specular_intensity;
@@ -33,22 +33,22 @@ struct Attenuation
 struct DirectionalLight 
 {
     LightBase base;
-    vec3 direction;
+    vec4 direction;
 };
 
 struct PointLight 
 {
     LightBase base;
+    vec4 position;
     Attenuation att;
-    vec3 position;
 };
 
 struct SpotLight 
 {
     LightBase base;
+    vec4 direction;
+    vec4 position;
     Attenuation att;
-    vec3 direction;
-    vec3 position;
 
     float cutoff;
 };
@@ -76,11 +76,11 @@ uniform vec3 eye_position;
 */
 vec3 calculate_base_lighting(LightBase light, vec3 normal, vec3 light_direction, vec3 eye_direction)
 {
-    vec3 ambient_light = light.colour * light.ambient_intensity;
+    vec3 ambient_light = light.colour.rgb * light.ambient_intensity;
 
     // Diffuse lighting
     float diff = max(dot(normal, light_direction), 0.0);
-    vec3 diffuse = light.colour * light.diffuse_intensity * diff;
+    vec3 diffuse = light.colour.rgb * light.diffuse_intensity * diff;
 
     // Specular lighting
     vec3 reflect_direction  = reflect(-light_direction, normal);
@@ -111,13 +111,13 @@ float calculate_attenuation(Attenuation attenuation, vec3 light_position)
 
 vec3 calculate_directional_light(DirectionalLight light, vec3 normal, vec3 eye_direction)
 {
-    return calculate_base_lighting(light.base, normalize(-light.direction), normal, eye_direction);
+    return calculate_base_lighting(light.base, normalize(-light.direction.xyz), normal, eye_direction);
 }
 
 vec3 calculate_point_light(PointLight light, vec3 normal, vec3 eye_direction) 
 {
-    vec3 light_result = calculate_base_lighting(light.base, normalize(light.position - pass_fragment_coord), normal, eye_direction);
-    float attenuation = calculate_attenuation(light.att, light.position);
+    vec3 light_result = calculate_base_lighting(light.base, normalize(light.position.xyz - pass_fragment_coord), normal, eye_direction);
+    float attenuation = calculate_attenuation(light.att, light.position.xyz);
 
     return light_result * attenuation;
 }
@@ -125,14 +125,14 @@ vec3 calculate_point_light(PointLight light, vec3 normal, vec3 eye_direction)
 vec3 calculate_spot_light(SpotLight light, vec3 normal, vec3 eye_direction) 
 {
     
-    vec3 light_direction = normalize(light.position - pass_fragment_coord);
+    vec3 light_direction = normalize(light.position.xyz - pass_fragment_coord);
     vec3 light_result = calculate_base_lighting(light.base, light_direction, normal, eye_direction);
 
-    float attenuation = calculate_attenuation(light.att, light.position);
+    float attenuation = calculate_attenuation(light.att, light.position.xyz);
 
     // Smooth edges, creates the flashlight effect such that only centre pixels are lit
     float oco = cos(acos(light.cutoff) + radians(6));
-    float theta = dot(light_direction, -light.direction);
+    float theta = dot(light_direction, -light.direction.xyz);
     float epsilon = light.cutoff - oco;
     float intensity = clamp((theta - oco) / epsilon, 0.0, 1.0);
     

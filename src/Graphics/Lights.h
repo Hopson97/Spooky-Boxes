@@ -4,10 +4,11 @@
 
 struct LightBase
 {
-    glm::vec3 colour = {1, 1, 1};
+    glm::vec4 colour = {1, 1, 1, 0};
     float ambient_intensity = 0.2f;
     float diffuse_intensity = 0.2f;
     float specular_intensity = 0.2f;
+    float padding_ = 0.0f;
 };
 
 struct Attenuation
@@ -15,24 +16,25 @@ struct Attenuation
     float constant = 1.0f;
     float linear = 0.045f;
     float exponant = 0.0075f;
+    float padding_ = 0.0f;
 };
 
 struct DirectionalLight : public LightBase
 {
-    glm::vec3 direction = {0, -1, 0};
+    glm::vec4 direction = {0, -1, 0, 0.0f};
 };
 
 struct PointLight : public LightBase
 {
+    glm::vec4 position = {0, 0, 0, 0};
     Attenuation att;
-    glm::vec3 position = {0, 0, 0};
 };
 
 struct SpotLight : public LightBase
 {
+    glm::vec4 direction = {0, -1, 0, 0};
+    glm::vec4 position = {0, 0, 0, 0};
     Attenuation att;
-    glm::vec3 direction = {0, -1, 0};
-    glm::vec3 position = {0, 0, 0};
 
     float cutoff = 12.5;
 };
