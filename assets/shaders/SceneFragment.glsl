@@ -59,12 +59,15 @@ layout(std140) uniform Light
     SpotLight spot_light;
 };
 
+layout(std140) uniform PointLights 
+{
+    PointLight point_lights[MAX_LIGHTS];
+    
+};
+
 
 uniform Material material;
-
-uniform PointLight point_lights[MAX_LIGHTS];
 uniform int light_count;
-
 uniform bool is_light;
 uniform vec3 eye_position;
 

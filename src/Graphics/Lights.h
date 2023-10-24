@@ -27,6 +27,7 @@ struct PointLight : public LightBase
 {
     glm::vec4 position = {0, 0, 0, 0};
     Attenuation att;
+    float padding_ = 0.0f;
 };
 
 struct SpotLight : public LightBase
