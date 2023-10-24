@@ -518,7 +518,13 @@ int main()
     light_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 1);
     light_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, sizeof(DirectionalLight));
 
+    BufferObject spotlight_ubo;
+    spotlight_ubo.create_store(sizeof(SpotLight));
+    spotlight_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 1);
+    spotlight_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, sizeof(SpotLight));
+
     scene_shader.bind_uniform_block_index("Light", 1);
+    scene_shader.bind_uniform_block_index("USpotLight", 1);
 
     // -------------------
     // ==== Main Loop ====
@@ -760,14 +766,18 @@ int main()
         }
         scene_shader.set_uniform("light_count", 5);
 
-
+        SpotLight s = settings.lights.spot_light;
+        s.position = glm::vec4(camera.transform.position, 0.0f);
+        s.direction = glm::vec4(camera.get_forwards(), 0.0f);
+        s.cutoff = glm::cos(glm::radians(settings.lights.spot_light.cutoff));
+        spotlight_ubo.buffer_sub_data(0, s);
 
         // Set the spot light shader uniforms
-        scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.lights.spot_light.cutoff)));
-        scene_shader.set_uniform("spot_light.position",     glm::vec4(camera.transform.position, 0.0f));
-        scene_shader.set_uniform("spot_light.direction",    glm::vec4(camera.get_forwards(), 1.0f));
-        upload_base_light(scene_shader,                     settings.lights.spot_light, "spot_light");
-        upload_attenuation(scene_shader,                    settings.lights.spot_light.att, "spot_light");
+        //scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.lights.spot_light.cutoff)));
+       // scene_shader.set_uniform("spot_light.position",     glm::vec4(camera.transform.position, 0.0f));
+        //scene_shader.set_uniform("spot_light.direction",    glm::vec4(camera.get_forwards(), 1.0f));
+        //upload_base_light(scene_shader,                     settings.lights.spot_light, "spot_light");
+       // upload_attenuation(scene_shader,                    settings.lights.spot_light.att, "spot_light");
         // clang-format on
 
         scene_shader.set_uniform("is_light", false);
