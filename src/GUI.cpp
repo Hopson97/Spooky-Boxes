@@ -56,10 +56,11 @@ namespace GUI
         ImGui::SFML::Shutdown();
     }
 
-    void render()
+    void end_frame()
     {
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
     }
 
     void event(const sf::Window& window, sf::Event& e)
@@ -70,14 +71,11 @@ namespace GUI
     void debug_window(const glm::vec3& camera_position, const glm::vec3& camera_rotation,
                       Settings& settings)
     {
-        auto r = camera_rotation;
-        auto p = camera_position;
-
         // clang-format off
         if (ImGui::Begin("Debug Window"))
         {
-            ImGui::Text("Position: (%f, %f, %f)", p.x, p.y, p.z);
-            ImGui::Text("Rotation: (%f, %f, %f)", r.x, r.y, r.z);
+            text_vec3("Position", camera_position);
+            text_vec3("Rotation", camera_rotation);
 
             ImGui::SliderFloat("Material Shine", &settings.material_shine, 1.0f, 64.0f);
 
@@ -88,28 +86,28 @@ namespace GUI
 
             ImGui::PushID("DirLight");
             ImGui::Text("Directional light");
-            if (ImGui::SliderFloat3("Direction", &settings.dir_light.direction[0], -1.0, 1.0))
+            if (ImGui::SliderFloat3("Direction", &settings.lights.dir_light.direction[0], -1.0, 1.0))
             {
-                settings.dir_light.direction = glm::normalize(settings.dir_light.direction);
+                settings.lights.dir_light.direction = glm::normalize(settings.lights.dir_light.direction);
             }
-            base_light_widgets(settings.dir_light);
+            base_light_widgets(settings.lights.dir_light);
             ImGui::PopID();
 
             ImGui::Separator();
 
             ImGui::PushID("PointLight");
             ImGui::Text("Point light");
-            base_light_widgets(settings.point_light);
-            attenuation_widgets(settings.point_light.att);
+            base_light_widgets(settings.lights.point_light);
+            attenuation_widgets(settings.lights.point_light.att);
             ImGui::PopID();
 
             ImGui::Separator();
 
             ImGui::PushID("SpotLight");
             ImGui::Text("Spot light");
-            ImGui::SliderFloat("Cutoff", &settings.spot_light.cutoff, 0.0, 90.0f);
-            base_light_widgets(settings.spot_light);
-            attenuation_widgets(settings.spot_light.att);
+            ImGui::SliderFloat("Cutoff", &settings.lights.spot_light.cutoff, 0.0, 90.0f);
+            base_light_widgets(settings.lights.spot_light);
+            attenuation_widgets(settings.lights.spot_light.att);
             ImGui::PopID();
 
             ImGui::SliderFloat("Throw Force", &settings.throw_force, 0.0, 10000.0f);
@@ -147,6 +145,12 @@ namespace GUI
                        (bt_aabb ? DebugRenderer::DBG_DrawAabb : 0);
         debug_renderer.setDebugMode(draw_options);
         ImGui::End();
+    }
+
+    void text_vec3(const std::string& text, const glm::vec3& vect)
+    {
+        auto output = text + ": (%.2f, %.2f, %.2f)";
+        ImGui::Text(output.c_str(), vect.x, vect.y, vect.z);
     }
 
 } // namespace GUI

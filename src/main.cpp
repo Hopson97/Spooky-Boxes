@@ -28,8 +28,8 @@
 #include "Physics/PhysicsSystem.h"
 #include "Utils/HeightMap.h"
 #include "Utils/Maths.h"
+#include "Utils/Profiler.h"
 #include "Utils/Util.h"
-
 namespace
 {
     struct Material
@@ -101,7 +101,7 @@ namespace
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
         {
-            move *= 10.0f;
+            move *= 50.0f;
         }
 
         return move;
@@ -114,8 +114,7 @@ namespace
         auto change = sf::Mouse::getPosition(window) - last_mouse;
         r.x -= static_cast<float>(change.y * 0.35);
         r.y += static_cast<float>(change.x * 0.35);
-        sf::Mouse::setPosition({(int)window.getSize().x / 2, (int)window.getSize().y / 2},
-                               window);
+        sf::Mouse::setPosition({(int)window.getSize().x / 2, (int)window.getSize().y / 2}, window);
         last_mouse = sf::Mouse::getPosition(window);
 
         r.x = glm::clamp(r.x, -89.9f, 89.9f);
@@ -129,11 +128,6 @@ namespace
         }
     }
 
-    struct SSBOMatrix
-    {
-        glm::mat4 projection_matrix;
-        glm::mat4 view_matrix;
-    };
 } // namespace
 
 int main()
@@ -173,15 +167,16 @@ int main()
     // -----------------------------------------------------------
     auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    HeightMap height_map{128};
-    //auto height_map = HeightMap::from_image("assets/heightmaps/test2.png");
-    height_map.set_base_height();
+    HeightMap height_map{256};
+    // auto height_map = HeightMap::from_image("assets/heightmaps/test4.png");
+    // height_map.set_base_height();
     {
         TerrainGenerationOptions options;
         options.amplitude = 200.0f;
-        options.roughness = 0.5f;
-        options.octaves = 7;
-        options.seed = rand();
+        options.roughness = 0.6f;
+        options.octaves = 4;
+        options.smoothness = 300;
+        options.seed = rand() % 50000;
         std::cout << "Seed: " << options.seed << "\n";
 
         height_map.generate_terrain(options);
@@ -194,20 +189,17 @@ int main()
     auto wall_vertex_mesh = generate_cube_mesh({50.0f, 15.0f, 0.2f}, true);
 
     Model model;
-    model.load_from_file("assets/models/House/House.obj");
+    model.load_from_file("assets/models/House/House2.obj");
 
     GBuffer gbuffer(window.getSize().x, window.getSize().y);
 
     // ------------------------------------
     // ==== Create the OpenGL Textures ====
     // ------------------------------------
-    Material person_material("assets/textures/person.png",
-                             "assets/textures/person_specular.png");
-    Material grass_material("assets/textures/grass_03.png",
-                            "assets/textures/grass_specular.png");
+    Material person_material("assets/textures/person.png", "assets/textures/person_specular.png");
+    Material grass_material("assets/textures/grass_03.png", "assets/textures/grass_specular.png");
 
-    Material create_material("assets/textures/crate.png",
-                             "assets/textures/crate_specular.png");
+    Material create_material("assets/textures/crate.png", "assets/textures/crate_specular.png");
 
     // ---------------------------------------
     // ==== Create the OpenGL Framebuffer ====
@@ -260,17 +252,17 @@ int main()
     Transform terrain_transform;
     Transform light_transform;
     Transform model_transform;
-    model_transform.position = {50, height_map.get_height(50, 50), 50};
+    model_transform.position = {100, height_map.get_height(100, 100), 100};
     model_transform.scale = {2, 2, 2};
 
-    std::vector<Transform> box_transforms;
-    for (int i = 0; i < 40; i++)
+    std::array<PointLight, 5> point_lights;
+    for (int i = 0; i < 5; i++)
     {
+        PointLight p = settings.lights.point_light;
         float x = static_cast<float>(rand() % (height_map.size - 2)) + 1;
         float z = static_cast<float>(rand() % (height_map.size - 2)) + 1;
-        float r = static_cast<float>(rand() % 360);
-
-        box_transforms.push_back({{x, height_map.get_height(x, z), z}, {0.0f, r, 0}});
+        p.position = {x, height_map.get_height(x, z), z, 0.0f};
+        point_lights[i] = p;
     }
 
     std::vector<Transform> people_transforms;
@@ -362,7 +354,7 @@ int main()
         // Create the collision mesh
         auto& is = terrain_mesh.indices;
         auto& vs = terrain_mesh.vertices;
-        for (int i = 0; i < terrain_mesh.indices.size(); i += 3)
+        for (int i = 0; i < (int)terrain_mesh.indices.size(); i += 3)
         {
             auto v1 = to_btvec3(vs[is[i]].position);
             auto v2 = to_btvec3(vs[is[i + 1]].position);
@@ -382,9 +374,9 @@ int main()
         // Create the rigid body for the ground
         ground.motion_state = std::make_unique<btDefaultMotionState>(ground_transform);
 
-        btRigidBody::btRigidBodyConstructionInfo ground_rb_info(
-            mass, ground.motion_state.get(), ground.collision_shape.get(),
-            ground_shape_local_inertia);
+        btRigidBody::btRigidBodyConstructionInfo ground_rb_info(mass, ground.motion_state.get(),
+                                                                ground.collision_shape.get(),
+                                                                ground_shape_local_inertia);
         ground_rb_info.m_friction = 1.25f;
         ground.body = std::make_unique<btRigidBody>(ground_rb_info);
         dynamics_world.addRigidBody(ground.body.get());
@@ -405,7 +397,7 @@ int main()
 
         auto& is = mesh.indices;
         auto& vs = mesh.vertices;
-        for (int i = 0; i < mesh.indices.size(); i += 3)
+        for (int i = 0; i < (int)mesh.indices.size(); i += 3)
         {
             auto v1 = to_btvec3(vs[is[i]].position);
             auto v2 = to_btvec3(vs[is[i + 1]].position);
@@ -428,9 +420,8 @@ int main()
         // Create the rigid body for the ground
         mesh_object.motion_state = std::make_unique<btDefaultMotionState>(transform);
 
-        btRigidBody::btRigidBodyConstructionInfo rb_info(mass, mesh_object.motion_state.get(),
-                                                         mesh_object.collision_shape.get(),
-                                                         local_inertia);
+        btRigidBody::btRigidBodyConstructionInfo rb_info(
+            mass, mesh_object.motion_state.get(), mesh_object.collision_shape.get(), local_inertia);
         rb_info.m_friction = 1.25f;
         mesh_object.body = std::make_unique<btRigidBody>(rb_info);
 
@@ -466,54 +457,31 @@ int main()
     DebugRenderer debug_renderer(camera);
     dynamics_world.setDebugDrawer(&debug_renderer);
 
-    for (float y = 0.5; y < 10; y++)
-    {
-        for (float x = 2; x < 3; x++)
-        {
-            // add_dynamic_shape({x, y, 1}, {0, 0, 0});
-        }
-    }
-
-/*
-
-        glCreateBuffers(1, &ubo);
-        glNamedBufferStorage(ubo, sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
-
-        GLuint matrix_index = glGetUniformBlockIndex(scene_shader.program_, "matrix_data1");
-        glUniformBlockBinding(scene_shader.program_, matrix_index, 0);
-
-        glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
-        glBindBufferRange(GL_UNIFORM_BUFFER, 0, ubo, 0, sizeof(glm::mat4));
-
-
-        GLuint ubo2;
-        glCreateBuffers(1, &ubo2);
-        glNamedBufferStorage(ubo2, sizeof(glm::mat4), nullptr, GL_DYNAMIC_STORAGE_BIT);
-
-        GLuint matrix_index2 = glGetUniformBlockIndex(scene_shader.program_, "matrix_data2");
-        glUniformBlockBinding(scene_shader.program_, matrix_index2, 1);
-
-        glBindBufferBase(GL_UNIFORM_BUFFER, 1, ubo2);
-        glBindBufferRange(GL_UNIFORM_BUFFER, 1, ubo2, 0, sizeof(glm::mat4));
-
-
-        ...
-
-        glNamedBufferSubData(ubo, 0, sizeof(view_matrix), &projection_matrix);
-        glNamedBufferSubData(ubo2, 0, sizeof(view_matrix), &view_matrix);
-
-    */
-
     // --------------
-    // ==== SSBO ====
+    // ==== UBOs ====
     // --------------
-    BufferObject ubo;
-    ubo.create_store(sizeof(SSBOMatrix));
-    ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 0);
-    ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 0, sizeof(SSBOMatrix));
+    BufferObject matrix_ubo;
+    matrix_ubo.create_store(sizeof(glm::mat4) * 2);
+    matrix_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 0);
+    matrix_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 0, sizeof(glm::mat4) * 2);
 
+    auto SIZE = sizeof(DirectionalLight) + sizeof(SpotLight);
+    BufferObject light_ubo;
+    light_ubo.create_store(SIZE);
+    light_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 1);
+    light_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, SIZE);
+
+    BufferObject pointlights_ubo;
+    pointlights_ubo.create_store(sizeof(PointLight) * 5);
+    pointlights_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 2);
+    pointlights_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 2, sizeof(PointLight) * 5);
+
+    // Each shader must be bound to the specific index
     scene_shader.bind_uniform_block_index("matrix_data", 0);
+    scene_shader.bind_uniform_block_index("Light", 1);
+    scene_shader.bind_uniform_block_index("PointLights", 2);
 
+    std::cout << sizeof(SpotLight) << std::endl;
 
     // -------------------
     // ==== Main Loop ====
@@ -522,6 +490,8 @@ int main()
     TimeStep<60> time_step;
     sf::Clock game_time;
     sf::Clock delta_clock;
+
+    Profiler profiler;
     while (window.isOpen())
     {
         auto game_time_now = game_time.getElapsedTime();
@@ -546,10 +516,18 @@ int main()
                 }
                 else if (e.key.code == sf::Keyboard::B)
                 {
-                    float height = 15;
-                    float width = 5;
-                    float base = 50;
-                    float start = 50;
+                    // Size of the boxe quad
+                    float width = 2;
+
+                    // X/Z start position
+                    float base = model_transform.position.x;
+
+                    // Y Start position
+                    float start = height_map.get_height(base, base) + 25;
+
+                    // Height of the box stack
+                    float height = 20;
+
                     for (float y = start; y < start + height; y++)
                     {
                         for (float x = base; x < base + width; x++)
@@ -586,7 +564,8 @@ int main()
                     float y = f.y * settings.throw_force;
                     float z = f.z * settings.throw_force;
 
-                    add_dynamic_shape(camera.transform.position + f * 3.0f, {x, y, z}, settings.throw_mass);
+                    add_dynamic_shape(camera.transform.position + f * 3.0f, {x, y, z},
+                                      settings.throw_mass);
                 }
             }
         }
@@ -599,6 +578,8 @@ int main()
         // ---------------
         // ==== Input ====
         // ---------------
+
+        auto& input_profiler = profiler.begin_section("Input");
         auto SPEED = 5.0f;
         auto translate = get_keyboard_input(camera.transform, true) * SPEED;
 
@@ -611,6 +592,7 @@ int main()
         {
             window.setMouseCursorVisible(true);
         }
+        input_profiler.end_section();
 
         // ------------------------
         // ==== Sound handling ====
@@ -634,23 +616,34 @@ int main()
         // ----------------------------------
         // ==== Update w/ Fixed timestep ====
         // ----------------------------------
-        time_step.update(
-            [&](auto dt)
-            {
-                camera.transform.position += translate * dt.asSeconds();
+        {
+            auto& update_profiler = profiler.begin_section("Update");
 
-                light_transform.position.x +=
-                    glm::sin(game_time_now.asSeconds() * 0.55f) * dt.asSeconds() * 3.0f;
-                light_transform.position.z +=
-                    glm::cos(game_time_now.asSeconds() * 0.55f) * dt.asSeconds() * 3.0f;
+            time_step.update(
+                [&](auto dt)
+                {
+                    camera.transform.position += translate * dt.asSeconds();
 
-                //   settings.spot_light.cutoff -= 0.01;
-            });
-
+                    light_transform.position.x +=
+                        glm::sin(game_time_now.asSeconds() * 0.55f) * dt.asSeconds() * 3.0f;
+                    light_transform.position.z +=
+                        glm::cos(game_time_now.asSeconds() * 0.55f) * dt.asSeconds() * 3.0f;
+                    light_transform.position.y =
+                        height_map.get_height(static_cast<int>(light_transform.position.x),
+                                              static_cast<int>(light_transform.position.z)) +
+                        1.0f;
+                    //   settings.spot_light.cutoff -= 0.01;
+                });
+            update_profiler.end_section();
+        }
         // -------------------------
         // ==== Bullet3D Update ====
         // -------------------------
-        dynamics_world.stepSimulation(1.0f / 60.0f, 10);
+        {
+            auto& physics_profiler = profiler.begin_section("Physics");
+            dynamics_world.stepSimulation(1.0f / 60.0f);
+            physics_profiler.end_section();
+        }
 
         // Remove dead objects
         for (auto itr = physics_objects.begin(); itr != physics_objects.end();)
@@ -689,87 +682,55 @@ int main()
         // -------------------------------
         // View/ Camera matrix
         camera.update();
-        // Model matrices...
-        auto terrain_mat = create_model_matrix(terrain_transform);
-        auto light_mat = create_model_matrix(light_transform);
 
         // ------------------------------
         // ==== Set up shader states ====
         // ------------------------------
-        //
-        // GBuffer can be used here for deferred lighting
-        //scene_shader.set_uniform("projection_matrix", camera.get_projection());
-        //scene_shader.set_uniform("view_matrix", camera.get_view_matrix());
+        auto& full_render_profiler = profiler.begin_section("FullRender");
 
-        SSBOMatrix uniform_matrices;
-        uniform_matrices.projection_matrix = camera.get_projection();
-        uniform_matrices.view_matrix = camera.get_view_matrix();
-
-        ubo.buffer_sub_data(0, uniform_matrices);
+        auto& shader_states_profiler = profiler.begin_section("ShaderUniform");
+        matrix_ubo.buffer_sub_data(0, camera.get_projection());
+        matrix_ubo.buffer_sub_data(sizeof(camera.get_view_matrix()), camera.get_view_matrix());
 
         scene_shader.set_uniform("material.diffuse0", 0);
         scene_shader.set_uniform("material.specular0", 1);
-
-        // Scene
         scene_shader.set_uniform("eye_position", camera.transform.position);
+        scene_shader.set_uniform("light_count", 5);
 
         // For deferred shading:
         // scene_shader.set_uniform("postion_tex", 0);
         // scene_shader.set_uniform("normal_tex", 1);
         // scene_shader.set_uniform("albedo_spec_tex", 2);
 
-        // clang-format off
-        auto upload_base_light =
-            [](Shader& shader, const LightBase& light, const std::string& uniform)
-        {
-            shader.set_uniform(uniform + ".base.colour",               light.colour);
-            shader.set_uniform(uniform + ".base.ambient_intensity",    light.ambient_intensity);
-            shader.set_uniform(uniform + ".base.diffuse_intensity",    light.diffuse_intensity);
-            shader.set_uniform(uniform + ".base.specular_intensity",   light.specular_intensity);
-        };
-        auto upload_attenuation =
-            [](Shader& shader, const Attenuation& attenuation, const std::string& uniform)
-        {
-            shader.set_uniform(uniform + ".att.constant",   attenuation.constant);
-            shader.set_uniform(uniform + ".att.linear",     attenuation.linear);
-            shader.set_uniform(uniform + ".att.exponant",   attenuation.exponant);
-        };
+        // ---------------------------
+        // ==== UBO shader states ====
+        // ---------------------------
+        DirectionalLight l = settings.lights.dir_light;
+        light_ubo.buffer_sub_data(0, l);
 
-        // Set the directional light shader uniforms
-        scene_shader.set_uniform("dir_light.direction", settings.dir_light.direction);
-        upload_base_light(scene_shader,                 settings.dir_light, "dir_light");
+        SpotLight spotlight = settings.lights.spot_light;
+        spotlight.cutoff = glm::cos(glm::radians(settings.lights.spot_light.cutoff));
+        spotlight.position = glm::vec4(camera.transform.position, 0.0f);
+        spotlight.direction = glm::vec4(camera.get_forwards(), 0.0f);
+        light_ubo.buffer_sub_data(sizeof(DirectionalLight), spotlight);
 
-        // Set the point light shader uniforms
-        scene_shader.set_uniform("point_lights[0].position", light_transform.position);
-        upload_base_light(scene_shader,                     settings.point_light, "point_lights[0]");
-        upload_attenuation(scene_shader,                    settings.point_light.att, "point_lights[0]");
-        for (int i = 0; i < 5; i++)
+        // Set point lights
+        for (auto& light : point_lights)
         {
-            auto pos = box_transforms[i].position;
-            pos.y += 1.0f;
-            auto location = "point_lights[" + std::to_string(i + 1) + "]";
-
-            scene_shader.set_uniform(location + ".position", pos);
-            upload_base_light(scene_shader,                     settings.point_light, location);
-            upload_attenuation(scene_shader,                    settings.point_light.att, location);
+            auto p = light.position;
+            light = settings.lights.point_light;
+            light.position = p;
         }
-        scene_shader.set_uniform("light_count", 5);
-
-
-
-        // Set the spot light shader uniforms
-        scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.spot_light.cutoff)));
-        scene_shader.set_uniform("spot_light.position",     camera.transform.position);
-        scene_shader.set_uniform("spot_light.direction",    camera.get_forwards());
-        upload_base_light(scene_shader,                     settings.spot_light, "spot_light");
-        upload_attenuation(scene_shader,                    settings.spot_light.att, "spot_light");
-        // clang-format on
+        point_lights[4].position = glm::vec4(light_transform.position, 1.0f);
+        pointlights_ubo.buffer_sub_data(0, point_lights);
 
         scene_shader.set_uniform("is_light", false);
-
+        shader_states_profiler.end_section();
         // -------------------------------------
         // ==== Render to GBuffer (fbo now) ====
         // -------------------------------------
+        auto& rendering_profile = profiler.begin_section("Rendering");
+        //
         // gbuffer.bind();
         // gbuffer_shader.bind();
 
@@ -785,15 +746,9 @@ int main()
         glCullFace(GL_BACK);
 
         // ==== Render Terrain ====
-        if (settings.grass)
-        {
-            grass_material.bind();
-        }
-        else
-        {
-            create_material.bind();
-        }
+        (settings.grass ? grass_material : create_material).bind();
 
+        auto terrain_mat = create_model_matrix(terrain_transform);
         scene_shader.set_uniform("model_matrix", terrain_mat);
         terrain_mesh.bind();
         terrain_mesh.draw();
@@ -816,7 +771,6 @@ int main()
         billboard_vertex_array.bind();
         for (auto& transform : people_transforms)
         {
-
             // Draw billboard
             auto pi = static_cast<float>(std::numbers::pi);
             auto xd = transform.position.x - camera.transform.position.x;
@@ -833,17 +787,32 @@ int main()
             billboard_vertex_array.draw();
         }
 
-        // ==== Render Floating Light ====
-        scene_shader.set_uniform("model_matrix", light_mat);
-        light_vertex_mesh.bind();
-        light_vertex_mesh.draw();
-
         scene_shader.set_uniform("model_matrix", create_model_matrix(model_transform));
         model.draw(scene_shader);
 
+        // ==== Render Floating Light ====
+        scene_shader.set_uniform("is_light", true);
+        auto light_mat = create_model_matrix(light_transform);
+        scene_shader.set_uniform("model_matrix", light_mat);
+        light_vertex_mesh.bind();
+        light_vertex_mesh.draw();
+        for (auto& light : point_lights)
+        {
+            glm::mat4 m{1.0f};
+            m = glm::translate(m, {light.position.x, light.position.y, light.position.z});
+            scene_shader.set_uniform("model_matrix", m);
+            light_vertex_mesh.draw();
+        }
+
+        rendering_profile.end_section();
+
         // Render debug stuff
-        dynamics_world.debugDrawWorld();
-        debug_renderer.render();
+        {
+            auto& debug_render_profile = profiler.begin_section("DebugRender");
+            dynamics_world.debugDrawWorld();
+            debug_renderer.render();
+            debug_render_profile.end_section();
+        }
 
         // -----------------------
         // ==== Render to FBO ====
@@ -875,15 +844,27 @@ int main()
         // Render
         glBindVertexArray(fbo_vbo);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        full_render_profiler.end_section();
 
         // --------------------------
         // ==== End Frame ====
         // --------------------------
         // ImGui::ShowDemoWindow();
+
         GUI::debug_window(camera.transform.position, camera.transform.rotation, settings);
         GUI::debug_renderer_window(debug_renderer, settings);
 
-        GUI::render();
+        if (ImGui::Begin("Stats"))
+        {
+            ImGui::Text("B o x e s: %d", physics_objects.size());
+        }
+        ImGui::End();
+
+        profiler.end_frame();
+        profiler.gui();
+
+        GUI::end_frame();
+
         window.display();
     }
 
@@ -896,7 +877,6 @@ int main()
     for (int i = dynamics_world.getNumCollisionObjects() - 1; i >= 0; i--)
     {
         btCollisionObject* obj = dynamics_world.getCollisionObjectArray()[i];
-        btRigidBody* body = btRigidBody::upcast(obj);
         dynamics_world.removeCollisionObject(obj);
     }
 }

@@ -146,6 +146,11 @@ void Shader::set_uniform(const std::string& name, const glm::vec3& vect)
     glProgramUniform3fv(program_, get_uniform_location(name), 1, glm::value_ptr(vect));
 }
 
+void Shader::set_uniform(const std::string& name, const glm::vec4& vect)
+{
+    glProgramUniform4fv(program_, get_uniform_location(name), 1, glm::value_ptr(vect));
+}
+
 void Shader::set_uniform(const std::string& name, const glm::mat4& matrix)
 {
     glProgramUniformMatrix4fv(program_, get_uniform_location(name), 1, GL_FALSE,

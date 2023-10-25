@@ -16,11 +16,13 @@ add_executable(${PROJECT_NAME}
     src/GUI.cpp
 
     src/Utils/Maths.cpp
+    src/Utils/HeightMap.cpp
     src/Utils/Util.cpp
     src/Graphics/Camera.cpp
     src/Graphics/DebugRenderer.cpp
     src/Graphics/GBuffer.cpp
     src/Graphics/Mesh.cpp
+    src/Graphics/Model.cpp
     src/Graphics/OpenGL/Framebuffer.cpp
     src/Graphics/OpenGL/GLDebugEnable.cpp
     src/Graphics/OpenGL/Shader.cpp

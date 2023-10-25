@@ -13,9 +13,9 @@ namespace GUI
     bool init(sf::Window* window);
 
     void begin_frame();
+    void end_frame();
 
     void shutdown();
-    void render();
 
     void event(const sf::Window& window, sf::Event& e);
 
@@ -24,5 +24,7 @@ namespace GUI
                       const glm::vec3& camera_rotation, Settings& settings);
 
     void debug_renderer_window(DebugRenderer& debug_renderer, Settings& setting);
+
+    void text_vec3(const std::string& text, const glm::vec3& vect);
 
 } // namespace GUI

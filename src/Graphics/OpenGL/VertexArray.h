@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <vector>
 
 // #include "../Mesh.h"
@@ -28,12 +29,17 @@ struct BufferObject : public GLResource<glCreateBuffers, glDeleteBuffers>
         glNamedBufferStorage(id, sizeof(data), data, GL_DYNAMIC_STORAGE_BIT);
     }
 
+    template <typename T, int N>
+    void buffer_sub_data(GLintptr offset, const std::array<T, N>& data)
+    {
+        glNamedBufferSubData(id, offset, sizeof(data[0]) * data.size(), data.data());
+    }
+
     template <typename T>
     void buffer_sub_data(GLintptr offset, const T& data)
     {
         glNamedBufferSubData(id, offset, sizeof(data), &data);
     }
-
 
     void create_store(GLsizeiptr size);
     void bind_buffer_base(BindBufferTarget target, GLuint index);
