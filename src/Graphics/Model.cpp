@@ -34,7 +34,10 @@ void Model::process_node(aiNode* node, const aiScene* scene)
     for (unsigned i = 0; i < node->mNumMeshes; i++)
     {
         auto mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes_.push_back(process_mesh(mesh, scene));
+        if (mesh->mName != aiString("Collision"))
+        {
+            meshes_.push_back(process_mesh(mesh, scene));
+        }
     }
 
     for (unsigned i = 0; i < node->mNumChildren; i++)
@@ -98,6 +101,10 @@ std::vector<size_t> Model::load_material(aiMaterial* material, aiTextureType tex
 Model::ModelMesh Model::process_mesh(aiMesh* ai_mesh, const aiScene* scene)
 {
     ModelMesh mesh;
+    if (ai_mesh->mName == aiString("Collision"))
+    {
+        return mesh;
+    }
 
     // Process the Assimp's mesh vertices
     for (unsigned i = 0; i < ai_mesh->mNumVertices; i++)

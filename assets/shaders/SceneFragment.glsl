@@ -1,6 +1,6 @@
 #version 450 core
 
-#define MAX_LIGHTS 32
+#define MAX_LIGHTS 5
 
 layout (location = 0) out vec4 out_colour;
 
@@ -58,7 +58,7 @@ layout(std140) uniform Light
     DirectionalLight dir_light;
 };
 
-layout(std140) uniform FlashLight 
+layout(std140) uniform Flashlight 
 {
     SpotLight spot_light;
 };
@@ -142,9 +142,9 @@ vec3 calculate_spot_light(SpotLight light, vec3 normal, vec3 eye_direction)
     vec3 light_result = calculate_base_lighting(light.base, light_direction, normal, eye_direction);
 
     float attenuation = calculate_attenuation(light.att, light.position.xyz);
-
     // Smooth edges, creates the flashlight effect such that only centre pixels are lit
     float oco = cos(acos(light.cutoff) + radians(6));
+
     float theta = dot(light_direction, -light.direction.xyz);
     float epsilon = light.cutoff - oco;
     float intensity = clamp((theta - oco) / epsilon, 0.0, 1.0);

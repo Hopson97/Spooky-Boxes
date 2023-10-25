@@ -3,8 +3,8 @@
 #include <filesystem>
 
 #include <assimp/Importer.hpp>
-#include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 #include "Mesh.h"
 #include "OpenGL/Texture.h"
@@ -20,8 +20,6 @@ class Model
         std::string path;
     };
 
-
-
   public:
     struct ModelMesh
     {
@@ -32,14 +30,11 @@ class Model
     };
 
     Model() = default;
-
-    Model(const std::filesystem::path& path);
-    bool load_from_file(const std::filesystem::path& path);
-
     Model(const BasicMesh& mesh);
+    Model(const std::filesystem::path& path);
 
+    bool load_from_file(const std::filesystem::path& path);
     void draw(Shader& shader);
-
     const std::vector<ModelMesh>& get_meshes() const;
 
   private:
@@ -47,10 +42,7 @@ class Model
     ModelMesh process_mesh(aiMesh* mesh, const aiScene* scene);
     std::vector<size_t> load_material(aiMaterial* material, aiTextureType texture_type);
 
-
     std::vector<ModelMesh> meshes_;
-
     std::vector<Texture> textures_cache_;
-
     std::string directory_;
 };

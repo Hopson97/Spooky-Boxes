@@ -188,7 +188,7 @@ int main()
     auto wall_vertex_mesh = generate_cube_mesh({50.0f, 15.0f, 0.2f}, true);
 
     Model model;
-    model.load_from_file("assets/models/House/House.obj");
+    model.load_from_file("assets/models/House/House2.obj");
 
     GBuffer gbuffer(window.getSize().x, window.getSize().y);
 
@@ -470,8 +470,7 @@ int main()
     light_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 1);
     light_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, sizeof(DirectionalLight));
 
-   // auto SIZE = sizeof(DirectionalLight) + sizeof(SpotLight);
-
+    // auto SIZE = sizeof(DirectionalLight) + sizeof(SpotLight);
 
     BufferObject pointlights_ubo;
     pointlights_ubo.create_store(sizeof(PointLight) * 5);
@@ -488,6 +487,8 @@ int main()
     scene_shader.bind_uniform_block_index("Light", 1);
     scene_shader.bind_uniform_block_index("PointLights", 2);
     scene_shader.bind_uniform_block_index("Flashlight", 3);
+
+    std::cout << sizeof(SpotLight) << std::endl;
 
     // -------------------
     // ==== Main Loop ====
@@ -738,11 +739,11 @@ int main()
         pointlights_ubo.buffer_sub_data(0, point_lights);
 
         
-        SpotLight s = settings.lights.spot_light;
-        s.cutoff        = glm::cos(glm::radians(settings.lights.spot_light.cutoff));
-        s.position      = glm::vec4(camera.transform.position, 0.0f);
-        s.direction     = glm::vec4(camera.get_forwards(), 0.0f);
-        flashlight_ubo.buffer_sub_data(0, s);
+        SpotLight spotlight = settings.lights.spot_light;
+        spotlight.cutoff        = glm::cos(glm::radians(settings.lights.spot_light.cutoff));
+        spotlight.position      = glm::vec4(camera.transform.position, 0.0f);
+        spotlight.direction     = glm::vec4(camera.get_forwards(), 0.0f);
+        flashlight_ubo.buffer_sub_data(0, spotlight);
         
         /*
         scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.lights.spot_light.cutoff)));
@@ -754,15 +755,6 @@ int main()
         // Set the spot light shader uniforms
 
         // clang-format on
-
-        /*
-        if (ImGui::Begin("ah")) {
-            GUI::text_vec3("Position", s.position);
-            GUI::text_vec3("Direction", s.direction);
-        }
-        ImGui::End();
-        */
-
 
         scene_shader.set_uniform("is_light", false);
 
