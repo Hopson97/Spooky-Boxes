@@ -101,7 +101,7 @@ namespace
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
         {
-            move *= 10.0f;
+            move *= 50.0f;
         }
 
         return move;
@@ -167,14 +167,15 @@ int main()
     // -----------------------------------------------------------
     auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    HeightMap height_map{128};
-    // auto height_map = HeightMap::from_image("assets/heightmaps/test2.png");
-    height_map.set_base_height();
+    HeightMap height_map{256};
+    // auto height_map = HeightMap::from_image("assets/heightmaps/test4.png");
+    // height_map.set_base_height();
     {
         TerrainGenerationOptions options;
-        options.amplitude = 100.0f;
+        options.amplitude = 200.0f;
         options.roughness = 0.6f;
-        options.octaves = 7;
+        options.octaves = 4;
+        options.smoothness = 300;
         options.seed = rand() % 50000;
         std::cout << "Seed: " << options.seed << "\n";
 
@@ -251,7 +252,7 @@ int main()
     Transform terrain_transform;
     Transform light_transform;
     Transform model_transform;
-    model_transform.position = {50, height_map.get_height(50, 50), 50};
+    model_transform.position = {100, height_map.get_height(100, 100), 100};
     model_transform.scale = {2, 2, 2};
 
     std::array<PointLight, 5> point_lights;
@@ -466,27 +467,19 @@ int main()
 
     auto SIZE = sizeof(DirectionalLight) + sizeof(SpotLight);
     BufferObject light_ubo;
-    light_ubo.create_store(sizeof(DirectionalLight));
+    light_ubo.create_store(SIZE);
     light_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 1);
-    light_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, sizeof(DirectionalLight));
-
-    // auto SIZE = sizeof(DirectionalLight) + sizeof(SpotLight);
+    light_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 1, SIZE);
 
     BufferObject pointlights_ubo;
     pointlights_ubo.create_store(sizeof(PointLight) * 5);
     pointlights_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 2);
     pointlights_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 2, sizeof(PointLight) * 5);
 
-    BufferObject flashlight_ubo;
-    flashlight_ubo.create_store(sizeof(SpotLight));
-    flashlight_ubo.bind_buffer_base(BindBufferTarget::UniformBuffer, 3);
-    flashlight_ubo.bind_buffer_range(BindBufferTarget::UniformBuffer, 3, sizeof(SpotLight));
-
     // Each shader must be bound to the specific index
     scene_shader.bind_uniform_block_index("matrix_data", 0);
     scene_shader.bind_uniform_block_index("Light", 1);
     scene_shader.bind_uniform_block_index("PointLights", 2);
-    scene_shader.bind_uniform_block_index("Flashlight", 3);
 
     std::cout << sizeof(SpotLight) << std::endl;
 
@@ -497,6 +490,8 @@ int main()
     TimeStep<60> time_step;
     sf::Clock game_time;
     sf::Clock delta_clock;
+
+    FPSCounter fps_counter;
     while (window.isOpen())
     {
         auto game_time_now = game_time.getElapsedTime();
@@ -521,10 +516,18 @@ int main()
                 }
                 else if (e.key.code == sf::Keyboard::B)
                 {
-                    float height = 15;
-                    float width = 5;
-                    float base = 50;
-                    float start = 50;
+                    // Size of the boxe quad
+                    float width = 2;
+
+                    // X/Z start position
+                    float base = model_transform.position.x;
+
+                    // Y Start position
+                    float start = height_map.get_height(base, base) + 25;
+
+                    // Height of the box stack
+                    float height = 20;
+
                     for (float y = start; y < start + height; y++)
                     {
                         for (float x = base; x < base + width; x++)
@@ -672,89 +675,40 @@ int main()
         // ------------------------------
         // ==== Set up shader states ====
         // ------------------------------
-        //
-        // GBuffer can be used here for deferred lighting
         matrix_ubo.buffer_sub_data(0, camera.get_projection());
         matrix_ubo.buffer_sub_data(sizeof(camera.get_view_matrix()), camera.get_view_matrix());
 
         scene_shader.set_uniform("material.diffuse0", 0);
         scene_shader.set_uniform("material.specular0", 1);
-
-        // Scene
         scene_shader.set_uniform("eye_position", camera.transform.position);
+        scene_shader.set_uniform("light_count", 5);
 
         // For deferred shading:
         // scene_shader.set_uniform("postion_tex", 0);
         // scene_shader.set_uniform("normal_tex", 1);
         // scene_shader.set_uniform("albedo_spec_tex", 2);
 
-        // clang-format off
-        auto upload_base_light =
-            [](Shader& shader, const LightBase& light, const std::string& uniform)
-        {
-            shader.set_uniform(uniform + ".base.colour",               light.colour);
-            shader.set_uniform(uniform + ".base.ambient_intensity",    light.ambient_intensity);
-            shader.set_uniform(uniform + ".base.diffuse_intensity",    light.diffuse_intensity);
-            shader.set_uniform(uniform + ".base.specular_intensity",   light.specular_intensity);
-        };
-        auto upload_attenuation =
-            [](Shader& shader, const Attenuation& attenuation, const std::string& uniform)
-        {
-            shader.set_uniform(uniform + ".att.constant",   attenuation.constant);
-            shader.set_uniform(uniform + ".att.linear",     attenuation.linear);
-            shader.set_uniform(uniform + ".att.exponant",   attenuation.exponant);
-        };
-
-        // Set the directional light shader uniforms
+        // ---------------------------
+        // ==== UBO shader states ====
+        // ---------------------------
         DirectionalLight l = settings.lights.dir_light;
         light_ubo.buffer_sub_data(0, l);
-        //scene_shader.set_uniform("dir_light.direction", settings.lights.dir_light.direction);
-        //upload_base_light(scene_shader,                 settings.lights.dir_light, "dir_light");
 
-        // Set the point light shader uniforms
-        
-        /*
-        scene_shader.set_uniform("point_lights[0].position", glm::vec4(light_transform.position, 1.0f));
-        upload_base_light(scene_shader,                     settings.lights.point_light, "point_lights[0]");
-        upload_attenuation(scene_shader,                    settings.lights.point_light.att, "point_lights[0]");
-        for (int i = 0; i < 5; i++)
+        SpotLight spotlight = settings.lights.spot_light;
+        spotlight.cutoff = glm::cos(glm::radians(settings.lights.spot_light.cutoff));
+        spotlight.position = glm::vec4(camera.transform.position, 0.0f);
+        spotlight.direction = glm::vec4(camera.get_forwards(), 0.0f);
+        light_ubo.buffer_sub_data(sizeof(DirectionalLight), spotlight);
+
+        // Set point lights
+        for (auto& light : point_lights)
         {
-            auto pos = point_lights[i];
-            pos.position += 1.0f;
-            auto location = "point_lights[" + std::to_string(i + 1) + "]";
-            scene_shader.set_uniform(location + ".position", pos.position);
-        
-        
-            upload_base_light(scene_shader,                     settings.lights.point_light, location);
-            upload_attenuation(scene_shader,                    settings.lights.point_light.att, location);
-        }
-        */
-        scene_shader.set_uniform("light_count", 5);
-        for (auto& light : point_lights) {
             auto p = light.position;
             light = settings.lights.point_light;
             light.position = p;
         }
         point_lights[4].position = glm::vec4(light_transform.position, 1.0f);
         pointlights_ubo.buffer_sub_data(0, point_lights);
-
-        
-        SpotLight spotlight = settings.lights.spot_light;
-        spotlight.cutoff        = glm::cos(glm::radians(settings.lights.spot_light.cutoff));
-        spotlight.position      = glm::vec4(camera.transform.position, 0.0f);
-        spotlight.direction     = glm::vec4(camera.get_forwards(), 0.0f);
-        flashlight_ubo.buffer_sub_data(0, spotlight);
-        
-        /*
-        scene_shader.set_uniform("spot_light.cutoff",       glm::cos(glm::radians(settings.lights.spot_light.cutoff)));
-        scene_shader.set_uniform("spot_light.position",     glm::vec4(camera.transform.position, 0.0f));
-        scene_shader.set_uniform("spot_light.direction",    glm::vec4(camera.get_forwards(), 1.0f));
-        upload_base_light(scene_shader, settings.lights.spot_light, "spot_light");
-        upload_attenuation(scene_shader, settings.lights.spot_light.att, "spot_light");
-        */
-        // Set the spot light shader uniforms
-
-        // clang-format on
 
         scene_shader.set_uniform("is_light", false);
 
@@ -776,14 +730,8 @@ int main()
         glCullFace(GL_BACK);
 
         // ==== Render Terrain ====
-        if (settings.grass)
-        {
-            grass_material.bind();
-        }
-        else
-        {
-            create_material.bind();
-        }
+        (settings.grass ? grass_material : create_material).bind();
+
         auto terrain_mat = create_model_matrix(terrain_transform);
         scene_shader.set_uniform("model_matrix", terrain_mat);
         terrain_mesh.bind();
@@ -881,6 +829,14 @@ int main()
         // ImGui::ShowDemoWindow();
         GUI::debug_window(camera.transform.position, camera.transform.rotation, settings);
         GUI::debug_renderer_window(debug_renderer, settings);
+
+        fps_counter.update();
+        if (ImGui::Begin("Stats"))
+        {
+            ImGui::Text("B o x e s: %d", physics_objects.size());
+            ImGui::Text("Frame Time: %f", fps_counter.frameTime);
+        }
+        ImGui::End();
 
         GUI::render();
         window.display();
