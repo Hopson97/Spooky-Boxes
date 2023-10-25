@@ -56,10 +56,11 @@ namespace GUI
         ImGui::SFML::Shutdown();
     }
 
-    void render()
+    void end_frame()
     {
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
     }
 
     void event(const sf::Window& window, sf::Event& e)

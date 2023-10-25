@@ -28,8 +28,8 @@
 #include "Physics/PhysicsSystem.h"
 #include "Utils/HeightMap.h"
 #include "Utils/Maths.h"
+#include "Utils/Profiler.h"
 #include "Utils/Util.h"
-
 namespace
 {
     struct Material
@@ -491,7 +491,7 @@ int main()
     sf::Clock game_time;
     sf::Clock delta_clock;
 
-    FPSCounter fps_counter;
+    Profiler profiler;
     while (window.isOpen())
     {
         auto game_time_now = game_time.getElapsedTime();
@@ -578,6 +578,8 @@ int main()
         // ---------------
         // ==== Input ====
         // ---------------
+
+        auto& input_profiler = profiler.begin_section("Input");
         auto SPEED = 5.0f;
         auto translate = get_keyboard_input(camera.transform, true) * SPEED;
 
@@ -590,6 +592,7 @@ int main()
         {
             window.setMouseCursorVisible(true);
         }
+        input_profiler.end_section();
 
         // ------------------------
         // ==== Sound handling ====
@@ -613,26 +616,34 @@ int main()
         // ----------------------------------
         // ==== Update w/ Fixed timestep ====
         // ----------------------------------
-        time_step.update(
-            [&](auto dt)
-            {
-                camera.transform.position += translate * dt.asSeconds();
+        {
+            auto& update_profiler = profiler.begin_section("Update");
 
-                light_transform.position.x +=
-                    glm::sin(game_time_now.asSeconds() * 0.55f) * dt.asSeconds() * 3.0f;
-                light_transform.position.z +=
-                    glm::cos(game_time_now.asSeconds() * 0.55f) * dt.asSeconds() * 3.0f;
-                light_transform.position.y =
-                    height_map.get_height(static_cast<int>(light_transform.position.x),
-                                          static_cast<int>(light_transform.position.z)) +
-                    1.0f;
-                //   settings.spot_light.cutoff -= 0.01;
-            });
+            time_step.update(
+                [&](auto dt)
+                {
+                    camera.transform.position += translate * dt.asSeconds();
 
+                    light_transform.position.x +=
+                        glm::sin(game_time_now.asSeconds() * 0.55f) * dt.asSeconds() * 3.0f;
+                    light_transform.position.z +=
+                        glm::cos(game_time_now.asSeconds() * 0.55f) * dt.asSeconds() * 3.0f;
+                    light_transform.position.y =
+                        height_map.get_height(static_cast<int>(light_transform.position.x),
+                                              static_cast<int>(light_transform.position.z)) +
+                        1.0f;
+                    //   settings.spot_light.cutoff -= 0.01;
+                });
+            update_profiler.end_section();
+        }
         // -------------------------
         // ==== Bullet3D Update ====
         // -------------------------
-        dynamics_world.stepSimulation(1.0f / 60.0f, 10);
+        {
+            auto& physics_profiler = profiler.begin_section("Physics");
+            dynamics_world.stepSimulation(1.0f / 60.0f);
+            physics_profiler.end_section();
+        }
 
         // Remove dead objects
         for (auto itr = physics_objects.begin(); itr != physics_objects.end();)
@@ -675,6 +686,9 @@ int main()
         // ------------------------------
         // ==== Set up shader states ====
         // ------------------------------
+        auto& full_render_profiler = profiler.begin_section("FullRender");
+
+        auto& shader_states_profiler = profiler.begin_section("ShaderUniform");
         matrix_ubo.buffer_sub_data(0, camera.get_projection());
         matrix_ubo.buffer_sub_data(sizeof(camera.get_view_matrix()), camera.get_view_matrix());
 
@@ -711,10 +725,12 @@ int main()
         pointlights_ubo.buffer_sub_data(0, point_lights);
 
         scene_shader.set_uniform("is_light", false);
-
+        shader_states_profiler.end_section();
         // -------------------------------------
         // ==== Render to GBuffer (fbo now) ====
         // -------------------------------------
+        auto& rendering_profile = profiler.begin_section("Rendering");
+        //
         // gbuffer.bind();
         // gbuffer_shader.bind();
 
@@ -788,9 +804,15 @@ int main()
             light_vertex_mesh.draw();
         }
 
+        rendering_profile.end_section();
+
         // Render debug stuff
-        dynamics_world.debugDrawWorld();
-        debug_renderer.render();
+        {
+            auto& debug_render_profile = profiler.begin_section("DebugRender");
+            dynamics_world.debugDrawWorld();
+            debug_renderer.render();
+            debug_render_profile.end_section();
+        }
 
         // -----------------------
         // ==== Render to FBO ====
@@ -822,23 +844,27 @@ int main()
         // Render
         glBindVertexArray(fbo_vbo);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        full_render_profiler.end_section();
 
         // --------------------------
         // ==== End Frame ====
         // --------------------------
         // ImGui::ShowDemoWindow();
+
         GUI::debug_window(camera.transform.position, camera.transform.rotation, settings);
         GUI::debug_renderer_window(debug_renderer, settings);
 
-        fps_counter.update();
         if (ImGui::Begin("Stats"))
         {
             ImGui::Text("B o x e s: %d", physics_objects.size());
-            ImGui::Text("Frame Time: %f", fps_counter.frameTime);
         }
         ImGui::End();
 
-        GUI::render();
+        profiler.end_frame();
+        profiler.gui();
+
+        GUI::end_frame();
+
         window.display();
     }
 

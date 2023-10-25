@@ -13,9 +13,9 @@ namespace GUI
     bool init(sf::Window* window);
 
     void begin_frame();
+    void end_frame();
 
     void shutdown();
-    void render();
 
     void event(const sf::Window& window, sf::Event& e);
 
