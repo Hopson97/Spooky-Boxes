@@ -69,9 +69,6 @@ struct GLTextureResource
     void set_wrap_t(TextureWrap wrap);
 };
 
-bool load_image_from_file(const std::filesystem::path& path, bool flip_vertically,
-                          bool flip_horizontally, sf::Image& out_image);
-
 struct Texture2D : public GLTextureResource
 {
     Texture2D();

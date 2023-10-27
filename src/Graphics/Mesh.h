@@ -68,10 +68,6 @@ using BasicMesh = Mesh<BasicVertex>;
 using DebugMesh = Mesh<DebugVertex>;
 
 
-[[nodiscard]] BasicMesh generate_quad_mesh(float w, float h);
-[[nodiscard]] BasicMesh generate_cube_mesh(const glm::vec3& size, bool repeat_texture);
-[[nodiscard]] BasicMesh generate_terrain_mesh(const HeightMap& height_map);
-
 // IMPL for Mesh
 template <typename VertexType>
 inline void Mesh<VertexType>::buffer()
@@ -108,3 +104,7 @@ inline void Mesh<VertexType>::draw(GLenum draw_mode) const
     assert(indices_ > 0);
     glDrawElements(draw_mode, indices_, GL_UNSIGNED_INT, nullptr);
 }
+
+[[nodiscard]] BasicMesh generate_quad_mesh(float w, float h);
+[[nodiscard]] BasicMesh generate_cube_mesh(const glm::vec3& size, bool repeat_texture);
+[[nodiscard]] BasicMesh generate_terrain_mesh(const HeightMap& height_map);

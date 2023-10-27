@@ -6,25 +6,29 @@
 //=======================
 // == Helper functions ==
 //=======================
-bool load_image_from_file(const std::filesystem::path& path, bool flip_vertically,
-                          bool flip_horizontally, sf::Image& out_image)
+namespace
 {
-    if (!out_image.loadFromFile(path.string()))
-    {
-        return false;
-    }
 
-    if (flip_vertically)
+    bool load_image_from_file(const std::filesystem::path& path, bool flip_vertically,
+                              bool flip_horizontally, sf::Image& out_image)
     {
-        out_image.flipVertically();
-    }
-    if (flip_horizontally)
-    {
-        out_image.flipHorizontally();
-    }
+        if (!out_image.loadFromFile(path.string()))
+        {
+            return false;
+        }
 
-    return true;
-}
+        if (flip_vertically)
+        {
+            out_image.flipVertically();
+        }
+        if (flip_horizontally)
+        {
+            out_image.flipHorizontally();
+        }
+
+        return true;
+    }
+} // namespace
 
 //=======================================
 // == GLTextureResource Implementation ==
