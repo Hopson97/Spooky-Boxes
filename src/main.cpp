@@ -490,9 +490,10 @@ int main()
 
     terrain_shader.set_uniform("material.grass_diffuse", 0);
     terrain_shader.set_uniform("material.grass_specular", 1);
-    terrain_shader.set_uniform("material.mud_diffuse", 2);
 
-    // terrain_shader.set_uniform("material.grass_diffuse", 1);
+    terrain_shader.set_uniform("material.mud_diffuse", 2);
+    terrain_shader.set_uniform("material.mud_specular", 3);
+
     //  -------------------
     //  ==== Main Loop ====
     //  -------------------
@@ -878,12 +879,15 @@ int main()
 
         if (options.gui())
         {
+            auto& time = profiler.begin_section("Terrain Re-Gen");
             height_map.generate_terrain(options);
             height_map.set_base_height();
 
             update_terrain_mesh(terrain_mesh, height_map);
 
             terrain_mesh.update();
+
+            time.end_section();
         }
 
         profiler.end_frame();

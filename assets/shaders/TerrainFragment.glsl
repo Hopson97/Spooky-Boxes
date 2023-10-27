@@ -154,26 +154,28 @@ vec3 calculate_spot_light(SpotLight light, vec3 normal, vec3 eye_direction)
 
 void main()
 {
-
-
     vec3 normal = normalize(pass_normal);
     vec3 eye_direction = normalize(eye_position - pass_fragment_coord); 
 
     vec3 total_light = vec3(0, 0, 0);
     total_light += calculate_directional_light(dir_light, normal, eye_direction);
 
-    for (int i = 0; i < light_count; i++) {
+    for (int i = 0; i < light_count; i++) 
+    {
         total_light += calculate_point_light(point_lights[i], normal, eye_direction);
     }
     total_light += calculate_spot_light(spot_light, normal, eye_direction);
 
     vec4 mud   = texture(material.grass_diffuse, pass_texture_coord);
     vec4 grass = texture(material.mud_diffuse, pass_texture_coord);
+    // vec4 snow = texture(material.snow_diffuse, pass_texture_coord);
+
 
     float mud_weight = dot(vec3(0, 1, 0), normalize(normal * vec3(1.25, 1, 0.9)));
     float grass_weight = 1 - mud_weight;
 
-    out_colour = grass_weight * grass + mud_weight * mud;
+    out_colour = grass * grass_weight + 
+                  mud_weight * mud;
 
     out_colour *= vec4(total_light, 1.0);
 
