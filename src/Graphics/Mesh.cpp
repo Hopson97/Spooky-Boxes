@@ -93,9 +93,19 @@ BasicMesh generate_cube_mesh(const glm::vec3& dimensions, bool repeat_texture)
 
 BasicMesh generate_terrain_mesh(const HeightMap& height_map)
 {
+    BasicMesh mesh;
+    update_terrain_mesh(mesh, height_map);
+    mesh.buffer();
+    return mesh;
+}
+
+void update_terrain_mesh(BasicMesh& mesh, const HeightMap& height_map)
+{
     float sizef = static_cast<float>(height_map.size);
 
-    BasicMesh mesh;
+    mesh.vertices.clear();
+    mesh.indices.clear();
+
     for (int z = 0; z < height_map.size; z++)
     {
         for (int x = 0; x < height_map.size; x++)
@@ -143,7 +153,4 @@ BasicMesh generate_terrain_mesh(const HeightMap& height_map)
             mesh.indices.push_back(bottomRight);
         }
     }
-    mesh.buffer();
-
-    return mesh;
 }

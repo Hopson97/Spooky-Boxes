@@ -1,22 +1,26 @@
 #pragma once
 
+#include <FastNoiseLite/FastNoiseLite.h>
 #include <filesystem>
 #include <vector>
 
 struct TerrainGenerationOptions
 {
-    float roughness = 0.7f;
-    float smoothness = 350.0f;
-    float amplitude = 80.0f;
+    float frequency = 0.12f;
+    float amplitude = 256.0f;
+    float lacunarity = 2.0f;
+    int octaves = 8;
 
-    int octaves = 5;
     float offset = -45.0f;
 
     int seed = 523523;
+
+    bool gui();
 };
 
 struct HeightMap
 {
+    FastNoiseLite noise_gen_;
     std::vector<float> heights;
     const int size;
 

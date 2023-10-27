@@ -27,6 +27,8 @@ struct GLResource
     GLResource& operator=(GLResource&& other) noexcept  { destroy(); id = other.id;  other.id = 0; return *this; }   
     GLResource(GLResource&& other) noexcept  : id  (other.id){ other.id = 0; }
 
+    virtual void reset() { destroy(); create(); }
+
     void create()   { if(id == 0) {(*CreateFunction)(1, &id);           } }
     void destroy()  { if(id != 0) {(*DeleteFunction)(1, &id); id = 0;   } }
 };

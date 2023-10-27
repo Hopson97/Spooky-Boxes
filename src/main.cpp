@@ -30,6 +30,7 @@
 #include "Utils/Maths.h"
 #include "Utils/Profiler.h"
 #include "Utils/Util.h"
+
 namespace
 {
     struct Material
@@ -44,10 +45,10 @@ namespace
             specular_texture.load_from_file(specular_texture_path, 8, true, false);
         }
 
-        void bind()
+        void bind(GLuint colour_texture_unit = 0, GLuint specular_texture_unit = 1)
         {
-            colour_texture.bind(0);
-            specular_texture.bind(1);
+            colour_texture.bind(colour_texture_unit);
+            specular_texture.bind(specular_texture_unit);
         }
     };
 
@@ -167,26 +168,19 @@ int main()
     // -----------------------------------------------------------
     auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    HeightMap height_map{256};
+    HeightMap height_map{512};
     // auto height_map = HeightMap::from_image("assets/heightmaps/test4.png");
     // height_map.set_base_height();
-    {
-        TerrainGenerationOptions options;
-        options.amplitude = 200.0f;
-        options.roughness = 0.6f;
-        options.octaves = 4;
-        options.smoothness = 300;
-        options.seed = rand() % 50000;
-        std::cout << "Seed: " << options.seed << "\n";
 
-        height_map.generate_terrain(options);
-        height_map.set_base_height();
-    }
+    TerrainGenerationOptions options;
+    options.seed = rand() % 50000;
+    std::cout << "Seed: " << options.seed << "\n";
+    height_map.generate_terrain(options);
+    height_map.set_base_height();
+
     auto terrain_mesh = generate_terrain_mesh(height_map);
-    auto light_vertex_mesh = generate_cube_mesh({0.2f, 0.2f, 0.2f}, false);
+    auto light_vertex_mesh = generate_cube_mesh({5.2f, 5.2f, 5.2f}, false);
     auto box_vertex_mesh = generate_cube_mesh({1.0f, 1.0f, 1.0f}, false);
-
-    auto wall_vertex_mesh = generate_cube_mesh({50.0f, 15.0f, 0.2f}, true);
 
     Model model;
     model.load_from_file("assets/models/House/House2.obj");
@@ -198,8 +192,10 @@ int main()
     // ------------------------------------
     Material person_material("assets/textures/person.png", "assets/textures/person_specular.png");
     Material grass_material("assets/textures/grass_03.png", "assets/textures/grass_specular.png");
+    Material crate_material("assets/textures/crate.png", "assets/textures/grass_specular.png");
 
-    Material create_material("assets/textures/crate.png", "assets/textures/crate_specular.png");
+    Material grass2_material("assets/textures/grass_03.png", "assets/textures/grass_specular.png");
+    Material mud_material("assets/textures/mud.png", "assets/textures/grass_specular.png");
 
     // ---------------------------------------
     // ==== Create the OpenGL Framebuffer ====
@@ -232,12 +228,19 @@ int main()
         return -1;
     }
 
-    Shader gbuffer_shader;
-    if (!gbuffer_shader.load_from_file("assets/shaders/GBufferVertex.glsl",
-                                       "assets/shaders/GBufferFragment.glsl"))
+    Shader terrain_shader;
+    if (!terrain_shader.load_from_file("assets/shaders/SceneVertex.glsl",
+                                       "assets/shaders/TerrainFragment.glsl"))
     {
         return -1;
     }
+
+    // Shader gbuffer_shader;
+    // if (!gbuffer_shader.load_from_file("assets/shaders/GBufferVertex.glsl",
+    //                                    "assets/shaders/GBufferFragment.glsl"))
+    // {
+    //     return -1;
+    // }
 
     Shader fbo_shader;
     if (!fbo_shader.load_from_file("assets/shaders/ScreenVertex.glsl",
@@ -481,11 +484,18 @@ int main()
     scene_shader.bind_uniform_block_index("Light", 1);
     scene_shader.bind_uniform_block_index("PointLights", 2);
 
-    std::cout << sizeof(SpotLight) << std::endl;
+    terrain_shader.bind_uniform_block_index("matrix_data", 0);
+    terrain_shader.bind_uniform_block_index("Light", 1);
+    terrain_shader.bind_uniform_block_index("PointLights", 2);
 
-    // -------------------
-    // ==== Main Loop ====
-    // -------------------
+    terrain_shader.set_uniform("material.grass_diffuse", 0);
+    terrain_shader.set_uniform("material.grass_specular", 1);
+    terrain_shader.set_uniform("material.mud_diffuse", 2);
+
+    // terrain_shader.set_uniform("material.grass_diffuse", 1);
+    //  -------------------
+    //  ==== Main Loop ====
+    //  -------------------
 
     TimeStep<60> time_step;
     sf::Clock game_time;
@@ -692,11 +702,6 @@ int main()
         matrix_ubo.buffer_sub_data(0, camera.get_projection());
         matrix_ubo.buffer_sub_data(sizeof(camera.get_view_matrix()), camera.get_view_matrix());
 
-        scene_shader.set_uniform("material.diffuse0", 0);
-        scene_shader.set_uniform("material.specular0", 1);
-        scene_shader.set_uniform("eye_position", camera.transform.position);
-        scene_shader.set_uniform("light_count", 5);
-
         // For deferred shading:
         // scene_shader.set_uniform("postion_tex", 0);
         // scene_shader.set_uniform("normal_tex", 1);
@@ -724,7 +729,6 @@ int main()
         point_lights[4].position = glm::vec4(light_transform.position, 1.0f);
         pointlights_ubo.buffer_sub_data(0, point_lights);
 
-        scene_shader.set_uniform("is_light", false);
         shader_states_profiler.end_section();
         // -------------------------------------
         // ==== Render to GBuffer (fbo now) ====
@@ -746,15 +750,26 @@ int main()
         glCullFace(GL_BACK);
 
         // ==== Render Terrain ====
-        (settings.grass ? grass_material : create_material).bind();
+        //(settings.grass ? grass_material : crate_material).bind();
+        // mud_material.bind(2, 3);
+        scene_shader.set_uniform("is_light", false);
 
         auto terrain_mat = create_model_matrix(terrain_transform);
-        scene_shader.set_uniform("model_matrix", terrain_mat);
+        terrain_shader.bind();
+
+        grass2_material.bind(0, 1);
+        mud_material.bind(2, 3);
+
+        terrain_shader.set_uniform("model_matrix", terrain_mat);
+        terrain_shader.set_uniform("eye_position", camera.transform.position);
         terrain_mesh.bind();
         terrain_mesh.draw();
 
         // Render the boxes, using the built in getOpenGLMatrix from bullet
-        create_material.bind();
+        scene_shader.bind();
+        scene_shader.set_uniform("eye_position", camera.transform.position);
+
+        crate_material.bind();
         box_vertex_mesh.bind();
         for (auto& box_transform : physics_objects)
         {
@@ -807,6 +822,7 @@ int main()
         rendering_profile.end_section();
 
         // Render debug stuff
+        if (debug_renderer.getDebugMode() > 0)
         {
             auto& debug_render_profile = profiler.begin_section("DebugRender");
             dynamics_world.debugDrawWorld();
@@ -859,6 +875,16 @@ int main()
             ImGui::Text("B o x e s: %d", physics_objects.size());
         }
         ImGui::End();
+
+        if (options.gui())
+        {
+            height_map.generate_terrain(options);
+            height_map.set_base_height();
+
+            update_terrain_mesh(terrain_mesh, height_map);
+
+            terrain_mesh.update();
+        }
 
         profiler.end_frame();
         profiler.gui();

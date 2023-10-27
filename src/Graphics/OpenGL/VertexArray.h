@@ -29,6 +29,12 @@ struct BufferObject : public GLResource<glCreateBuffers, glDeleteBuffers>
         glNamedBufferStorage(id, sizeof(data), data, GL_DYNAMIC_STORAGE_BIT);
     }
 
+    template <typename T>
+    void buffer_sub_data(GLintptr offset, const T& data)
+    {
+        glNamedBufferSubData(id, offset, sizeof(data), &data);
+    }
+
     template <typename T, int N>
     void buffer_sub_data(GLintptr offset, const std::array<T, N>& data)
     {
@@ -36,9 +42,9 @@ struct BufferObject : public GLResource<glCreateBuffers, glDeleteBuffers>
     }
 
     template <typename T>
-    void buffer_sub_data(GLintptr offset, const T& data)
+    void buffer_sub_data(GLintptr offset, const std::vector<T> data)
     {
-        glNamedBufferSubData(id, offset, sizeof(data), &data);
+        glNamedBufferSubData(id, offset, sizeof(data[0]) * data.size(), data.data());
     }
 
     void create_store(GLsizeiptr size);
@@ -52,7 +58,7 @@ struct VertexArray : public GLResource<glCreateVertexArrays, glDeleteVertexArray
     void bind() const;
     void add_attribute(const BufferObject& vbo, GLsizei stride, GLint size, GLenum type,
                        GLuint offset);
-    void reset();
+    void reset() override;
 
   private:
     GLuint attribs_ = 0;

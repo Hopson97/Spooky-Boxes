@@ -54,42 +54,71 @@ class Mesh
     std::vector<GLuint> indices;
 
     void buffer();
+    void update();
+
     void bind() const;
     void draw(GLenum draw_mode = GL_TRIANGLES) const;
 
   private:
     VertexArray vao_;
-    std::vector<BufferObject> buffers_;
+    BufferObject vbo_;
+    BufferObject ebo_;
 
     GLuint indices_ = 0;
+
+    bool buffered_ = false;
 };
 
 using BasicMesh = Mesh<BasicVertex>;
 using DebugMesh = Mesh<DebugVertex>;
 
 
-// IMPL for Mesh
+// =================================
+// Buffers the mesh to the GPU
+// =================================
 template <typename VertexType>
 inline void Mesh<VertexType>::buffer()
 {
+    if (buffered_)
+    {
+        return;
+    }
+    std::cout << "Buffering mesh\n";
     // Ensure the mesh data is reset
-    buffers_.clear();
     vao_.reset();
+    vbo_.reset();
+    ebo_.reset();
 
-    // Attach EBO
-    BufferObject ebo;
-    ebo.buffer_data(indices);
-    glVertexArrayElementBuffer(vao_.id, ebo.id);
     indices_ = static_cast<GLuint>(indices.size());
 
+    // Attach EBO
+    ebo_.buffer_data(indices);
+    glVertexArrayElementBuffer(vao_.id, ebo_.id);
+
     // Attach VBO
-    BufferObject vbo;
-    vbo.buffer_data(vertices);
+    vbo_.buffer_data(vertices);
+    VertexType::link_attribs(vao_, vbo_);
 
-    VertexType::link_attribs(vao_, vbo);
+    buffered_ = true;
+}
 
-    buffers_.push_back(std::move(vbo));
-    buffers_.push_back(std::move(ebo));
+template <typename VertexType>
+inline void Mesh<VertexType>::update()
+{
+    if (indices_ != static_cast<GLuint>(indices.size()))
+    {
+        std::cout << "Indides mis-match. Current: " << indices_ << " - New: " << indices.size()
+                  << "\nRe-creating mesh.\n";
+        buffered_ = false;
+    }
+
+    if (!buffered_)
+    {
+        buffer();
+        return;
+    }
+    ebo_.buffer_sub_data(0, indices);
+    vbo_.buffer_sub_data(0, vertices);
 }
 
 template <typename VertexType>
@@ -108,3 +137,4 @@ inline void Mesh<VertexType>::draw(GLenum draw_mode) const
 [[nodiscard]] BasicMesh generate_quad_mesh(float w, float h);
 [[nodiscard]] BasicMesh generate_cube_mesh(const glm::vec3& size, bool repeat_texture);
 [[nodiscard]] BasicMesh generate_terrain_mesh(const HeightMap& height_map);
+[[nodiscard]] void update_terrain_mesh(BasicMesh& mesh, const HeightMap& height_map);

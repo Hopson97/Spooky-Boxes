@@ -33,7 +33,7 @@ void Framebuffer::bind_colour_attachment(GLuint index, GLuint unit) const
 Framebuffer& Framebuffer::attach_colour(TextureFormat format)
 {
     assert(attachments_.size() < GL_MAX_COLOR_ATTACHMENTS - 1);
-    GLenum attachment = GL_COLOR_ATTACHMENT0 + attachments_.size();
+    GLenum attachment = GL_COLOR_ATTACHMENT0 + static_cast<int>(attachments_.size());
 
     Texture2D& texture = attachments_.emplace_back();
     texture.create(width, height, 1, format);
@@ -61,8 +61,7 @@ Framebuffer& Framebuffer::attach_depth_buffer()
 
 bool Framebuffer::is_complete() const
 {
-    if (auto status =
-            glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    if (auto status = glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
         std::cerr << "Framebuffer incomplete. Status: " << status << '\n';
         return false;
