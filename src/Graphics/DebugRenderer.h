@@ -15,8 +15,7 @@ class DebugRenderer : public btIDebugDraw
     void drawLine(const btVector3& from, const btVector3& to, const btVector3& from_colour,
                   const btVector3& to_colour) override;
 
-    void drawLine(const btVector3& from, const btVector3& to,
-                  const btVector3& colour) override;
+    void drawLine(const btVector3& from, const btVector3& to, const btVector3& colour) override;
 
     void drawSphere(const btVector3& p, btScalar radius, const btVector3& colour) override;
 
@@ -36,10 +35,15 @@ class DebugRenderer : public btIDebugDraw
 
     int getDebugMode() const override;
 
+    void gui();
+    bool gl_wireframe() const;
+
   private:
     DebugMesh mesh_;
     Shader shader_;
 
     int debug_mode_ = 0;
     const PerspectiveCamera* p_camera_ = nullptr;
+
+    bool gl_wireframe_ = false;
 };

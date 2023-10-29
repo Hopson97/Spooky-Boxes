@@ -6,6 +6,8 @@
 #include "Camera.h"
 #include "OpenGL/VertexArray.h"
 
+#include <imgui.h>
+
 // Inspired from
 // https://gamedev.stackexchange.com/questions/172789/bullet-physics-debugdraw-unexpected-results
 // and
@@ -41,8 +43,7 @@ void DebugRenderer::drawLine(const btVector3& from, const btVector3& to,
     //             from_colour[2]);
 }
 
-void DebugRenderer::drawLine(const btVector3& from, const btVector3& to,
-                             const btVector3& colour)
+void DebugRenderer::drawLine(const btVector3& from, const btVector3& to, const btVector3& colour)
 {
     drawLine(from, to, colour, colour);
 }
@@ -92,10 +93,43 @@ void DebugRenderer::render()
     shader_.set_uniform("projection_matrix", p_camera_->get_projection());
     shader_.set_uniform("view_matrix", p_camera_->get_view_matrix());
 
-    mesh_.buffer();
+    mesh_.update();
     mesh_.bind();
     mesh_.draw(GL_LINES);
 
     mesh_.vertices.clear();
     mesh_.indices.clear();
+}
+
+void DebugRenderer::gui()
+{
+    static bool bt_wireframe = false;
+    static bool bt_aabb = false;
+    static bool gl_wireframe = false;
+    static GLfloat gl_line_width = 1;
+
+    if (ImGui::Begin("Debug Rendering"))
+    {
+        ImGui::Text("Bullet3 Debug Options");
+        ImGui::Checkbox("Collision Wireframe", &bt_wireframe);
+        ImGui::Checkbox("AABBs", &bt_aabb);
+        ImGui::Separator();
+        ImGui::Text("Misc Debug Options");
+        ImGui::Checkbox("Wireframe", &gl_wireframe);
+        if (ImGui::SliderFloat("Line Width", &gl_line_width, 1.0f, 16.0f))
+        {
+            glLineWidth(gl_line_width);
+        }
+    }
+
+    int draw_options = 0;
+    draw_options = (bt_wireframe ? DebugRenderer::DBG_DrawWireframe : 0) |
+                   (bt_aabb ? DebugRenderer::DBG_DrawAabb : 0);
+    setDebugMode(draw_options);
+    ImGui::End();
+}
+
+bool DebugRenderer::gl_wireframe() const
+{
+    return gl_wireframe_;
 }

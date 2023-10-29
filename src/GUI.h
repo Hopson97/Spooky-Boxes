@@ -6,7 +6,6 @@
 
 class DebugRenderer;
 
-
 namespace GUI
 {
 
@@ -19,12 +18,8 @@ namespace GUI
 
     void event(const sf::Window& window, sf::Event& e);
 
-
-    void debug_window(const glm::vec3& camera_position,
-                      const glm::vec3& camera_rotation, Settings& settings);
-
-    void debug_renderer_window(DebugRenderer& debug_renderer, Settings& setting);
-
+    void debug_window(const glm::vec3& camera_position, const glm::vec3& camera_rotation,
+                      Settings& settings);
     void text_vec3(const std::string& text, const glm::vec3& vect);
 
 } // namespace GUI

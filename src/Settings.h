@@ -37,8 +37,6 @@ struct Settings
 
     bool grass = true;
 
-    bool wireframe = false;
-
     float throw_force = 4000.0f;
     float throw_mass = 1.0f;
 };

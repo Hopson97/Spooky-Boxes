@@ -751,10 +751,7 @@ int main()
         // gbuffer.bind();
         // gbuffer_shader.bind();
 
-        if (settings.wireframe)
-        {
-            glPolygonMode(GL_FRONT_AND_BACK, settings.wireframe ? GL_LINE : GL_FILL);
-        }
+        glPolygonMode(GL_FRONT_AND_BACK, debug_renderer.gl_wireframe() ? GL_LINE : GL_FILL);
 
         fbo.bind();
         scene_shader.bind();
@@ -891,7 +888,7 @@ int main()
         // ImGui::ShowDemoWindow();
 
         GUI::debug_window(camera.transform.position, camera.transform.rotation, settings);
-        GUI::debug_renderer_window(debug_renderer, settings);
+        debug_renderer.gui();
 
         if (ImGui::Begin("Stats"))
         {
