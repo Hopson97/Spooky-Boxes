@@ -10,6 +10,8 @@ struct PhysicsObject
     std::unique_ptr<btCollisionShape> collision_shape;
     std::unique_ptr<btDefaultMotionState> motion_state;
     std::unique_ptr<btRigidBody> body;
+
+    bool is_box = false;
 };
 
 class PhysicsSystem

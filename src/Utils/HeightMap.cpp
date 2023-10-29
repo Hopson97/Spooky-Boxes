@@ -33,7 +33,7 @@ void HeightMap::set_height(int x, int z, float height)
     heights[z * size + x] = height;
 }
 
-void HeightMap::set_base_height()
+float HeightMap::set_base_height()
 {
     float base = 0;
 
@@ -43,6 +43,8 @@ void HeightMap::set_base_height()
     {
         h -= min_diff;
     }
+
+    return min_diff;
 }
 
 float HeightMap::min_height() const
@@ -68,11 +70,12 @@ void HeightMap::generate_terrain(const TerrainGenerationOptions& options)
         {
             float noise = noise_gen_.GetNoise(x * 0.01f, z * 0.01f);
             noise = (noise + 1.0f) / 2.0f;
-            float height = noise * options.amplitude - (options.amplitude / 8.0f);
+            float height =
+                noise * options.amplitude - (options.amplitude / options.amplitude_dampen);
 
             float noise2 = noise_gen_.GetNoise(x * 0.06f, z * 0.06f);
             noise2 = (noise2 + 1.0f) / 2.0f;
-            height += noise2 * options.amplitude / 8;
+            height += noise2 * options.amplitude / options.amplitude_dampen;
 
             // Make the terrain less noisy below water level if (height < waterLevel)
 
@@ -99,8 +102,6 @@ void HeightMap::generate_terrain(const TerrainGenerationOptions& options)
                     island(bump_x, options.bump_power) * island(bump_z, options.bump_power);
                 height *= bump;
             }
-
-            
 
             set_height(x, z, height);
         }
@@ -135,19 +136,20 @@ bool TerrainGenerationOptions::gui()
     if (ImGui::Begin("Height Generation"))
     {
         // clang-format off
-        if (ImGui::SliderFloat ("Frequency",   &frequency,   0.01f, 0.5f))      update = true;
-        if (ImGui::SliderFloat ("Amplitude",   &amplitude,   1.0f,  2000.0f))   update = true;
-        if (ImGui::SliderFloat ("Lacunarity",  &lacunarity,  0.01f, 2.5f))      update = true;
-        if (ImGui::SliderInt   ("Octaves",     &octaves,     1,     10))        update = true;
-        if (ImGui::SliderFloat ("Water Level", &water_level, 1,     500))       update = true;
-        if (ImGui::SliderInt   ("Seed",        &seed,        1,     1000000))   update = true;
+        if (ImGui::SliderFloat  ("Frequency",        &frequency,         0.01f, 0.5f))      update = true;
+        if (ImGui::SliderFloat  ("Amplitude",        &amplitude,         1.0f,  2000.0f))   update = true;
+        if (ImGui::SliderFloat  ("Amplitude Factor", &amplitude_dampen,  1.0f,  64.0f))   update = true;
+        if (ImGui::SliderFloat  ("Lacunarity",       &lacunarity,        0.01f, 2.5f))      update = true;
+        if (ImGui::SliderInt    ("Octaves",          &octaves,           1,     10))        update = true;
+        if (ImGui::SliderFloat  ("Water Level",      &water_level,       1,     500))       update = true;
+        if (ImGui::SliderInt    ("Seed",             &seed,              1,     1000000))   update = true;
 
         if (ImGui::Checkbox     ("Generate Island",     &generate_island))      update = true;
         if (ImGui::Checkbox     ("Water Level Dampen",  &water_level_damper))   update = true;
 
-        if (water_level_damper &&
+        if (generate_island &&
             ImGui::SliderInt ("Island Factor", &bump_power, 0, 16)) update = true;
-        
+
         // clang-format on
     }
     ImGui::End();

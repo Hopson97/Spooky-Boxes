@@ -179,6 +179,7 @@ int main()
     height_map.set_base_height();
 
     auto terrain_mesh = generate_terrain_mesh(height_map);
+    auto water_mesh = generate_plane_mesh(height_map.size, height_map.size);
     auto light_vertex_mesh = generate_cube_mesh({5.2f, 5.2f, 5.2f}, false);
     auto box_vertex_mesh = generate_cube_mesh({1.0f, 1.0f, 1.0f}, false);
 
@@ -253,10 +254,13 @@ int main()
     // ==== Entity Transform Creation ====
     // -----------------------------------
     Transform terrain_transform;
+    Transform water_transform;
     Transform light_transform;
     Transform model_transform;
     model_transform.position = {100, height_map.get_height(100, 100), 100};
     model_transform.scale = {2, 2, 2};
+
+    water_transform.position.y = options.water_level;
 
     std::array<PointLight, 5> point_lights;
     for (int i = 0; i < 5; i++)
@@ -282,6 +286,7 @@ int main()
     // -----------------------------------
     // ==== Camera Creation ====
     // -----------------------------------
+    // PerspectiveCamera camera(window.getSize().x, window.getSize().y, 75.0f);
     PerspectiveCamera camera(window.getSize().x, window.getSize().y, 75.0f);
     // camera.transform.position = {80.0f, 1.0f, 35.0f};
     camera.transform.rotation = {0.0f, 100, 0.0f};
@@ -382,6 +387,9 @@ int main()
                                                                 ground_shape_local_inertia);
         ground_rb_info.m_friction = 1.25f;
         ground.body = std::make_unique<btRigidBody>(ground_rb_info);
+        ground.body->setUserPointer(&ground);
+        ground.is_box = false;
+
         dynamics_world.addRigidBody(ground.body.get());
     }
 
@@ -427,6 +435,8 @@ int main()
             mass, mesh_object.motion_state.get(), mesh_object.collision_shape.get(), local_inertia);
         rb_info.m_friction = 1.25f;
         mesh_object.body = std::make_unique<btRigidBody>(rb_info);
+        mesh_object.body->setUserPointer(&mesh_object);
+        mesh_object.is_box = false;
 
         dynamics_world.addRigidBody(mesh_object.body.get());
     }
@@ -452,6 +462,8 @@ int main()
 
         box_rb_info.m_friction = 0.9f;
         box.body = std::make_unique<btRigidBody>(box_rb_info);
+        box.body->setUserPointer(&box);
+        box.is_box = true;
 
         box.body->applyCentralForce({force.x, force.y, force.z});
         dynamics_world.addRigidBody(box.body.get());
@@ -806,6 +818,15 @@ int main()
         scene_shader.set_uniform("model_matrix", create_model_matrix(model_transform));
         model.draw(scene_shader);
 
+        // ==== Render Water ====
+        {
+            water_mesh.bind();
+            glCullFace(GL_FRONT);
+            scene_shader.set_uniform("model_matrix", create_model_matrix(water_transform));
+            water_mesh.draw();
+            glCullFace(GL_BACK);
+        }
+
         // ==== Render Floating Light ====
         scene_shader.set_uniform("is_light", true);
         auto light_mat = create_model_matrix(light_transform);
@@ -861,6 +882,7 @@ int main()
         // Render
         glBindVertexArray(fbo_vbo);
         glDrawArrays(GL_TRIANGLES, 0, 6);
+
         full_render_profiler.end_section();
 
         // --------------------------
@@ -881,7 +903,7 @@ int main()
         {
             auto& time = profiler.begin_section("Terrain Re-Gen");
             height_map.generate_terrain(options);
-            height_map.set_base_height();
+            water_transform.position.y = options.water_level - height_map.set_base_height();
 
             update_terrain_mesh(terrain_mesh, height_map);
 

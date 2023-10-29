@@ -30,6 +30,21 @@ BasicMesh generate_quad_mesh(float w, float h)
     return mesh;
 }
 
+BasicMesh generate_plane_mesh(float w, float d)
+{
+    BasicMesh mesh;
+    mesh.vertices = {{{w, 0, d}, {0.0f, 1.0f}, {0, 1, 0}},
+                     {{0, 0, d}, {1.0f, 1.0f}, {0, 1, 0}},
+                     {{0, 0, 0.0f}, {1.0f, 0.0f}, {0, 1, 0}},
+                     {{w, 0, 0.0f}, {0.0f, 0.0f}, {0, 1, 0}}
+
+    };
+
+    mesh.indices = {2, 3, 0, 0, 1, 2};
+    mesh.buffer();
+    return mesh;
+}
+
 BasicMesh generate_cube_mesh(const glm::vec3& dimensions, bool repeat_texture)
 {
     BasicMesh mesh;

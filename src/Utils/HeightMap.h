@@ -10,6 +10,7 @@ struct TerrainGenerationOptions
     float amplitude = 315.0f;
     float lacunarity = 1.9f;
     int octaves = 6;
+    float amplitude_dampen = 8.0f;
 
     float water_level = 64.0f;
 
@@ -33,7 +34,7 @@ struct HeightMap
     float get_height(int x, int z) const;
     void set_height(int x, int z, float height);
 
-    void set_base_height();
+    float set_base_height();
 
     float min_height() const;
     float max_height() const;
