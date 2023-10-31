@@ -173,7 +173,18 @@ int main()
     // height_map.set_base_height();
 
     TerrainGenerationOptions options;
-    options.seed = rand() % 50000;
+     //options.seed = rand() % 50000;
+
+    options.seed = 5027;
+    /*
+    options.seed = 2777;
+    options.amplitude = 317;
+    options.amplitude_dampen = 19.1f;
+    options.lacunarity = 2.0f;
+    options.octaves = 8;
+    options.water_level = 138;
+    */
+
     std::cout << "Seed: " << options.seed << "\n";
     height_map.generate_terrain(options);
     height_map.set_base_height();
@@ -197,6 +208,11 @@ int main()
 
     Material grass2_material("assets/textures/grass_03.png", "assets/textures/grass_specular.png");
     Material mud_material("assets/textures/mud.png", "assets/textures/grass_specular.png");
+
+
+    Material lowres_grass("assets/textures/grass.png", "assets/textures/grass_s.png");
+    Material lowres_stone("assets/textures/stone.png", "assets/textures/stone_s.png");
+    Material lowres_sand("assets/textures/sand.png", "assets/textures/sand_s.png");
 
     // ---------------------------------------
     // ==== Create the OpenGL Framebuffer ====
@@ -603,7 +619,7 @@ int main()
         // ---------------
 
         auto& input_profiler = profiler.begin_section("Input");
-        auto SPEED = 5.0f;
+        auto SPEED = 3.0f;
         auto translate = get_keyboard_input(camera.transform, true) * SPEED;
 
         if (!mouse_locked)
@@ -820,7 +836,7 @@ int main()
             water_mesh.bind();
             glCullFace(GL_FRONT);
             scene_shader.set_uniform("model_matrix", create_model_matrix(water_transform));
-            water_mesh.draw();
+            //water_mesh.draw();
             glCullFace(GL_BACK);
         }
 
@@ -896,7 +912,7 @@ int main()
         }
         ImGui::End();
 
-        if (options.gui())
+        if (options.gui(height_map))
         {
             auto& time = profiler.begin_section("Terrain Re-Gen");
             height_map.generate_terrain(options);

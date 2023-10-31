@@ -1,9 +1,14 @@
 #include "HeightMap.h"
 
-#include <SFML/Graphics/Image.hpp>
 #include <cassert>
 #include <imgui.h>
 #include <iostream>
+#include <unordered_map>
+
+#include <SFML/Graphics/Image.hpp>
+#include <imgui.h>
+
+#include "../GUI.h"
 
 namespace
 {
@@ -11,6 +16,24 @@ namespace
     {
         return std::max(0.0, 1.0 - std::pow(t, power * 2));
     }
+
+    const std::unordered_map<std::string, FastNoiseLite::FractalType> FRACTAL_TYPES = {
+        {"Domain Warp Independent", FastNoiseLite::FractalType::FractalType_DomainWarpIndependent},
+        {"Domain Warp Progressive", FastNoiseLite::FractalType::FractalType_DomainWarpProgressive},
+        {"FBm", FastNoiseLite::FractalType::FractalType_FBm},
+        {"None", FastNoiseLite::FractalType::FractalType_None},
+        {"PingPong", FastNoiseLite::FractalType::FractalType_PingPong},
+        {"Ridged", FastNoiseLite::FractalType::FractalType_Ridged},
+    };
+
+    const std::unordered_map<std::string, FastNoiseLite::NoiseType> NOISE_TYPES = {
+        {"Open Simplex 2", FastNoiseLite::NoiseType::NoiseType_OpenSimplex2},
+        {"Open Simplex 2S", FastNoiseLite::NoiseType::NoiseType_OpenSimplex2S},
+        {"Cellular", FastNoiseLite::NoiseType::NoiseType_Cellular},
+        {"Perlin", FastNoiseLite::NoiseType::NoiseType_Perlin},
+        {"Value Cubic", FastNoiseLite::NoiseType::NoiseType_ValueCubic},
+        {"Value", FastNoiseLite::NoiseType::NoiseType_Value},
+    };
 
 } // namespace
 
@@ -130,8 +153,33 @@ HeightMap HeightMap::from_image(const std::filesystem::path& path)
     return height_map;
 }
 
-bool TerrainGenerationOptions::gui()
+bool HeightMap::gui()
 {
+    bool update = false;
+    static int fractal_type = FastNoiseLite::FractalType::FractalType_FBm;
+    static int noise_type = FastNoiseLite::NoiseType::NoiseType_OpenSimplex2;
+
+    ImGui::Text("Fractal Type");
+    GUI::radio_button_group(&fractal_type, FRACTAL_TYPES,
+                            [&](auto value)
+                            {
+                                noise_gen_.SetFractalType(value);
+                                update = true;
+                            });
+
+    ImGui::Text("Noise Type");
+    GUI::radio_button_group(&noise_type, NOISE_TYPES,
+                            [&](auto value)
+                            {
+                                noise_gen_.SetNoiseType(value);
+                                update = true;
+                            }, 3);
+    return update;
+}
+
+bool TerrainGenerationOptions::gui(HeightMap& heightmap)
+{
+    static int terrain_fill;
     bool update = false;
     if (ImGui::Begin("Height Generation"))
     {
@@ -143,6 +191,11 @@ bool TerrainGenerationOptions::gui()
         if (ImGui::SliderInt    ("Octaves",          &octaves,           1,     10))        update = true;
         if (ImGui::SliderFloat  ("Water Level",      &water_level,       1,     500))       update = true;
         if (ImGui::SliderInt    ("Seed",             &seed,              1,     1000000))   update = true;
+        ImGui::Separator();
+
+        if (heightmap.gui()) update = true;
+
+        ImGui::Separator();
 
         if (ImGui::Checkbox     ("Generate Island",     &generate_island))      update = true;
         if (ImGui::Checkbox     ("Water Level Dampen",  &water_level_damper))   update = true;

@@ -83,7 +83,7 @@ uniform vec3 eye_position;
 
     @return Combined light effect (Ambient + Diffuse + Specular)
 */
-vec3 calculate_base_lighting(LightBase light, vec3 normal, vec3 light_direction, vec3 eye_direction)
+vec3 calculate_base_lighting(LightBase light, vec3 normal, vec3 light_direction, vec3 eye_direction, vec3 specular)
 {
     vec3 ambient_light = light.colour.rgb * light.ambient_intensity;
 
@@ -94,9 +94,8 @@ vec3 calculate_base_lighting(LightBase light, vec3 normal, vec3 light_direction,
     // Specular lighting
     vec3 reflect_direction  = reflect(-light_direction, normal);
     float spec              = pow(max(dot(eye_direction, reflect_direction), 0.0), 16.0);//material.shininess);
-    vec3 specular           = light.specular_intensity * spec * vec3(texture(material.grass_specular, pass_texture_coord));
 
-    return ambient_light + diffuse + specular;
+    return ambient_light + diffuse + light.specular_intensity * spec *specular;// 
 }
 
 /**
@@ -118,24 +117,27 @@ float calculate_attenuation(Attenuation attenuation, vec3 light_position)
     );
 }
 
-vec3 calculate_directional_light(DirectionalLight light, vec3 normal, vec3 eye_direction)
+vec3 calculate_directional_light(DirectionalLight light, vec3 normal, vec3 eye_direction, vec3 specular)
 {
-    return calculate_base_lighting(light.base, normalize(-light.direction.xyz), normal, eye_direction);
+    return calculate_base_lighting(
+        light.base, normalize(-light.direction.xyz), normal, eye_direction, specular
+    );
 }
 
-vec3 calculate_point_light(PointLight light, vec3 normal, vec3 eye_direction) 
+vec3 calculate_point_light(PointLight light, vec3 normal, vec3 eye_direction, vec3 specular) 
 {
-    vec3 light_result = calculate_base_lighting(light.base, normalize(light.position.xyz - pass_fragment_coord), normal, eye_direction);
+    vec3 light_result = calculate_base_lighting(
+        light.base, normalize(light.position.xyz - pass_fragment_coord), normal, eye_direction, specular
+    );
     float attenuation = calculate_attenuation(light.att, light.position.xyz);
-
     return light_result * attenuation;
 }
 
-vec3 calculate_spot_light(SpotLight light, vec3 normal, vec3 eye_direction) 
+vec3 calculate_spot_light(SpotLight light, vec3 normal, vec3 eye_direction, vec3 specular) 
 {
     
     vec3 light_direction = normalize(light.position.xyz - pass_fragment_coord);
-    vec3 light_result = calculate_base_lighting(light.base, light_direction, normal, eye_direction);
+    vec3 light_result = calculate_base_lighting(light.base, light_direction, normal, eye_direction, specular);
 
     float attenuation = calculate_attenuation(light.att, light.position.xyz);
     // Smooth edges, creates the flashlight effect such that only centre pixels are lit
@@ -155,27 +157,36 @@ vec3 calculate_spot_light(SpotLight light, vec3 normal, vec3 eye_direction)
 void main()
 {
     vec3 normal = normalize(pass_normal);
-    vec3 eye_direction = normalize(eye_position - pass_fragment_coord); 
 
-    vec3 total_light = vec3(0, 0, 0);
-    total_light += calculate_directional_light(dir_light, normal, eye_direction);
-
-    for (int i = 0; i < light_count; i++) 
-    {
-        total_light += calculate_point_light(point_lights[i], normal, eye_direction);
-    }
-    total_light += calculate_spot_light(spot_light, normal, eye_direction);
+    float mud_weight = dot(vec3(0, 1, 0), normalize(normal * vec3(3, 1, 3)));
+    float grass_weight = 1 - mud_weight;
 
     vec4 mud   = texture(material.grass_diffuse, pass_texture_coord);
     vec4 grass = texture(material.mud_diffuse, pass_texture_coord);
-    // vec4 snow = texture(material.snow_diffuse, pass_texture_coord);
+
+    vec4 grass_spec = texture(material.grass_specular, pass_texture_coord);
+    vec4 mud_spec   = texture(material.mud_specular, pass_texture_coord);
+
+    out_colour = grass * grass_weight + mud_weight * mud;
+
+    vec3 specular = vec3(grass_spec * grass_weight + mud_weight * mud_spec);
 
 
-    float mud_weight = dot(vec3(0, 1, 0), normalize(normal * vec3(1.25, 1, 0.9)));
-    float grass_weight = 1 - mud_weight;
 
-    out_colour = grass * grass_weight + 
-                  mud_weight * mud;
+    vec3 eye_direction = normalize(eye_position - pass_fragment_coord); 
+    vec3 total_light = vec3(0, 0, 0);
+    total_light += calculate_directional_light(dir_light, normal, eye_direction, specular);
+
+    for (int i = 0; i < light_count; i++) 
+    {
+        total_light += calculate_point_light(point_lights[i], normal, eye_direction, specular);
+    }
+    total_light += calculate_spot_light(spot_light, normal, eye_direction, specular);
+
+
+
+
+
 
     out_colour *= vec4(total_light, 1.0);
 

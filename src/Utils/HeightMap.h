@@ -4,6 +4,8 @@
 #include <filesystem>
 #include <vector>
 
+struct HeightMap;
+
 struct TerrainGenerationOptions
 {
     float frequency = 0.15f;
@@ -21,7 +23,7 @@ struct TerrainGenerationOptions
 
     int bump_power = 3;
 
-    bool gui();
+    bool gui(HeightMap& heightmap);
 };
 
 struct HeightMap
@@ -42,6 +44,8 @@ struct HeightMap
     void generate_terrain(const TerrainGenerationOptions& options);
 
     static HeightMap from_image(const std::filesystem::path& path);
+
+    bool gui();
 
   private:
     FastNoiseLite noise_gen_;
