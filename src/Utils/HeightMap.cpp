@@ -72,12 +72,12 @@ float HeightMap::set_base_height()
 
 float HeightMap::min_height() const
 {
-    return min_height_;
+    return *std::min_element(heights.begin(), heights.end());
 }
 
 float HeightMap::max_height() const
 {
-    return max_height_;
+    return *std::max_element(heights.begin(), heights.end());
 }
 
 void HeightMap::generate_terrain(const TerrainGenerationOptions& options)
@@ -129,8 +129,6 @@ void HeightMap::generate_terrain(const TerrainGenerationOptions& options)
             set_height(x, z, height);
         }
     }
-    min_height_ = *std::min_element(heights.begin(), heights.end());
-    max_height_ = *std::max_element(heights.begin(), heights.end());
 }
 
 HeightMap HeightMap::from_image(const std::filesystem::path& path)
@@ -168,12 +166,14 @@ bool HeightMap::gui()
                             });
 
     ImGui::Text("Noise Type");
-    GUI::radio_button_group(&noise_type, NOISE_TYPES,
-                            [&](auto value)
-                            {
-                                noise_gen_.SetNoiseType(value);
-                                update = true;
-                            }, 3);
+    GUI::radio_button_group(
+        &noise_type, NOISE_TYPES,
+        [&](auto value)
+        {
+            noise_gen_.SetNoiseType(value);
+            update = true;
+        },
+        3);
     return update;
 }
 

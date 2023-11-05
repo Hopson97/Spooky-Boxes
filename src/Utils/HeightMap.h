@@ -16,6 +16,7 @@ struct TerrainGenerationOptions
 
     float water_level = 64.0f;
 
+
     int seed = 523523;
 
     bool water_level_damper = true;
@@ -49,6 +50,4 @@ struct HeightMap
 
   private:
     FastNoiseLite noise_gen_;
-    float min_height_ = 0.0f;
-    float max_height_ = 0.0f;
 };

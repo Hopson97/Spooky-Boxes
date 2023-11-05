@@ -161,11 +161,11 @@ vec3 calculate_spot_light(SpotLight light, vec3 normal, vec3 eye_direction, vec3
 
 void main()
 {
-/*
-    vec4 base_colour = texture(material.mud_diffuse, pass_texture_coord);
+
+    vec4 base_colour = texture(material.grass_diffuse, pass_texture_coord);
     if (max_height > 100) {
         // Transition values
-        float snow_begin = max_height * 0.7;
+        float snow_begin = max_height * 0.75;
         float snow_end = max_height * 0.8;
 
         float fragment_height = pass_fragment_coord.y;
@@ -173,30 +173,31 @@ void main()
 
         // Mix transition
         if (fragment_height > snow_end) {
-            
+            base_colour = texture(material.snow_diffuse, pass_texture_coord);
         }
         else if (fragment_height > snow_begin) {
-
+            float ratio = (snow_end - fragment_height) / ( snow_end - snow_begin);
+            base_colour = 
+                mix(
+                    texture(material.snow_diffuse, pass_texture_coord),
+                    base_colour, 
+                    ratio 
+                );
         }
-        else {
-
-        }
-
-
     }
-    */
+
     vec3 normal = normalize(pass_normal);
 
     float base_weight = dot(vec3(0, 1, 0), normalize(normal * vec3(3, 1, 3)));
     float cliff_weight = 1 - base_weight;
 
-    vec4 base   = texture(material.grass_diffuse, pass_texture_coord);
+    //vec4 base   = texture(material.grass_diffuse, pass_texture_coord);
     vec4 cliff = texture(material.mud_diffuse, pass_texture_coord);
 
     vec4 base_spec = texture(material.grass_specular, pass_texture_coord);
     vec4 cliff_spec   = texture(material.mud_specular, pass_texture_coord);
 
-    out_colour = cliff * cliff_weight + base_weight * base;
+    out_colour = cliff * cliff_weight + base_weight * base_colour;
 
     vec3 specular = vec3(cliff_spec * cliff_weight + base_weight * base_spec);
 
