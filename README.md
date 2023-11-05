@@ -63,3 +63,51 @@ To build and run in release mode, simply add the `release` suffix:
 sh scripts/build.sh release
 sh scripts/run.sh release
 ```
+
+### Credits
+
+#### Models
+
+House model by Vinrax -
+
+https://opengameart.org/content/small-old-house
+
+#### Textures
+
+Grass textures by Cethiel
+https://opengameart.org/content/tileable-grass-textures-set-1
+
+---
+
+Crate texture from learnopengl.com
+https://learnopengl.com/Getting-started/Textures
+
+---
+
+Mud/Cliff texture from ThinMatrix - unsure if he made it himself or not, but it's from his tutorial series
+
+[Dropbox](https://www.dropbox.com/sh/m8y3g1bh1l64hy8/AAAx9UhizogiLIRDNyWAZ72da?dl=0)
+https://www.youtube.com/user/ThinMatrix
+
+---
+
+"""Person""" texture by me
+
+#### Sounds
+
+sfx_step_grass_l.ogg, sfx_step_grass_r.ogg
+https://opengameart.org/content/grass-foot-step-sounds-yo-frankie
+
+---
+
+crickets.ogg
+https://opengameart.org/content/crickets-ambient-noise-loopable
+
+---
+
+Atmosphere_003(Loop).wav
+www.blackleafstudios.net
+contact@blackleafstudios.net
+https://opengameart.org/content/horror-atmosphere-lite
+
+---

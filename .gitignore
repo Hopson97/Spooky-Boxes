@@ -21,6 +21,7 @@ Release/
 *.srctrlprj
 *.srctrldb
 *.srctrlbm
-assets/models/
+assets/models/misc
+assets/models/backpack
 
 heightmaps

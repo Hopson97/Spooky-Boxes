@@ -174,6 +174,8 @@ int main()
 
     TerrainGenerationOptions options;
     options.seed = rand() % 50000;
+    options.seed = 3339;
+    options.generate_island = false;
 
     /*
     options.seed = 2777;
@@ -202,16 +204,11 @@ int main()
     // ==== Create the OpenGL Textures ====
     // ------------------------------------
     Material person_material("assets/textures/person.png", "assets/textures/person_specular.png");
-    Material grass_material("assets/textures/grass_03.png", "assets/textures/grass_specular.png");
     Material crate_material("assets/textures/crate.png", "assets/textures/grass_specular.png");
 
-    Material grass2_material("assets/textures/grass_03.png", "assets/textures/grass_specular.png");
+    Material grass_material("assets/textures/grass_03.png", "assets/textures/grass_specular.png");
     Material mud_material("assets/textures/mud.png", "assets/textures/mud_s.png");
     Material snow_material("assets/textures/snow.png", "assets/textures/snow.png");
-
-    Material lowres_grass("assets/textures/grass.png", "assets/textures/grass_s.png");
-    Material lowres_stone("assets/textures/stone.png", "assets/textures/stone_s.png");
-    Material lowres_sand("assets/textures/sand.png", "assets/textures/sand_s.png");
 
     // ---------------------------------------
     // ==== Create the OpenGL Framebuffer ====
@@ -718,7 +715,7 @@ int main()
         auto terrain_mat = create_model_matrix(terrain_transform);
         terrain_shader.bind();
 
-        grass2_material.bind(0, 1);
+        grass_material.bind(0, 1);
         mud_material.bind(2, 3);
         snow_material.bind(4, 5);
 
