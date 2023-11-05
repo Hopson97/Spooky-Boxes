@@ -168,7 +168,7 @@ int main()
     // -----------------------------------------------------------
     auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    HeightMap height_map{512};
+    HeightMap height_map{128};
     // auto height_map = HeightMap::from_image("assets/heightmaps/test4.png");
     // height_map.set_base_height();
 
@@ -347,6 +347,10 @@ int main()
     // ==== Bullet3D Experiments ====
     // ------------------------------
     // Contains the setup for memory and collisions
+
+    PhysicsSystem physics;
+
+    /*
     btDefaultCollisionConfiguration collision_config;
 
     btCollisionDispatcher collision_dispatcher(&collision_config);
@@ -359,14 +363,18 @@ int main()
     btSequentialImpulseConstraintSolver solver;
 
     // The world??
-    btDiscreteDynamicsWorld dynamics_world(&collision_dispatcher, overlapping_pair_cache.get(),
+    btDiscreteDynamicsWorld physics.world_(&collision_dispatcher, overlapping_pair_cache.get(),
                                            &solver, &collision_config);
 
-    dynamics_world.setGravity({0, -10, 0});
+    physics.world_.setGravity({0, -10, 0});
+
+    
 
     // Keep track of created collision shapes so they can be released at exit
     // btAlignedObjectArray<std::unique_ptr<btCollisionShape>> collision_shapes;
-    std::vector<PhysicsObject> physics_objects;
+    std::vector<PhysicsObject> physics.objects_;
+
+    */
 
     // -------------------------------------------------------
     // ==== Bullet3D Experiments: Create the ground plane ====
@@ -375,7 +383,7 @@ int main()
     // The triangle mesh must be kept alive so created in the outer scope
     btTriangleMesh terrain_collision_mesh;
     {
-        PhysicsObject& ground = physics_objects.emplace_back();
+        PhysicsObject& ground = physics.objects_.emplace_back();
 
         // Create the collision mesh
         auto& is = terrain_mesh.indices;
@@ -408,7 +416,7 @@ int main()
         ground.body->setUserPointer(&ground);
         ground.is_box = false;
 
-        dynamics_world.addRigidBody(ground.body.get());
+        physics.world_.addRigidBody(ground.body.get());
     }
 
     // ----------------------------------------------------
@@ -422,7 +430,7 @@ int main()
 
         auto& collision_mesh =
             model_collision_meshes.emplace_back(std::make_unique<btTriangleMesh>());
-        PhysicsObject& mesh_object = physics_objects.emplace_back();
+        PhysicsObject& mesh_object = physics.objects_.emplace_back();
 
         auto& is = mesh.indices;
         auto& vs = mesh.vertices;
@@ -456,7 +464,7 @@ int main()
         mesh_object.body->setUserPointer(&mesh_object);
         mesh_object.is_box = false;
 
-        dynamics_world.addRigidBody(mesh_object.body.get());
+        physics.world_.addRigidBody(mesh_object.body.get());
     }
 
     // --------------------------------------------------------
@@ -464,7 +472,7 @@ int main()
     // --------------------------------------------------------
     auto add_dynamic_shape = [&](const glm::vec3& position, const glm::vec3& force, float mass)
     {
-        PhysicsObject& box = physics_objects.emplace_back();
+        PhysicsObject& box = physics.objects_.emplace_back();
         box.collision_shape = std::make_unique<btBoxShape>(btVector3{0.5f, 0.5f, 0.5f});
 
         btVector3 local_inertia(0, 0, 0);
@@ -484,11 +492,11 @@ int main()
         box.is_box = true;
 
         box.body->applyCentralForce({force.x, force.y, force.z});
-        dynamics_world.addRigidBody(box.body.get());
+        physics.world_.addRigidBody(box.body.get());
     };
 
     DebugRenderer debug_renderer(camera);
-    dynamics_world.setDebugDrawer(&debug_renderer);
+    physics.world_.setDebugDrawer(&debug_renderer);
 
     // --------------
     // ==== UBOs ====
@@ -685,19 +693,19 @@ int main()
         // -------------------------
         {
             auto& physics_profiler = profiler.begin_section("Physics");
-            dynamics_world.stepSimulation(1.0f / 60.0f);
+            physics.world_.stepSimulation(1.0f / 60.0f);
             physics_profiler.end_section();
         }
 
         // Remove dead objects
-        for (auto itr = physics_objects.begin(); itr != physics_objects.end();)
+        for (auto itr = physics.objects_.begin(); itr != physics.objects_.end();)
         {
             auto& rb = itr->body;
             auto y = rb->getWorldTransform().getOrigin().getY();
             if (y < -5)
             {
-                dynamics_world.removeRigidBody(itr->body.get());
-                itr = physics_objects.erase(itr);
+                physics.world_.removeRigidBody(itr->body.get());
+                itr = physics.objects_.erase(itr);
             }
             else
             {
@@ -707,9 +715,9 @@ int main()
 
         // Iterate through collisions?
         /*
-        for (int i = 0; i < dynamics_world.getDispatcher()->getNumManifolds(); i++)
+        for (int i = 0; i < physics.world_.getDispatcher()->getNumManifolds(); i++)
         {
-            auto manifold = dynamics_world.getDispatcher()->getManifoldByIndexInternal(i);
+            auto manifold = physics.world_.getDispatcher()->getManifoldByIndexInternal(i);
             auto obj_a = manifold->getBody0();
             auto obj_b = manifold->getBody1();
             if (obj_a && obj_b)
@@ -803,7 +811,7 @@ int main()
 
         crate_material.bind();
         box_vertex_mesh.bind();
-        for (auto& box_transform : physics_objects)
+        for (auto& box_transform : physics.objects_)
         {
             glm::mat4 m{1.0f};
             box_transform.body->getWorldTransform().getOpenGLMatrix(glm::value_ptr(m));
@@ -866,7 +874,7 @@ int main()
         if (debug_renderer.getDebugMode() > 0)
         {
             auto& debug_render_profile = profiler.begin_section("DebugRender");
-            dynamics_world.debugDrawWorld();
+            physics.world_.debugDrawWorld();
             debug_renderer.render();
             debug_render_profile.end_section();
         }
@@ -914,7 +922,7 @@ int main()
 
         if (ImGui::Begin("Stats"))
         {
-            ImGui::Text("B o x e s: %d", physics_objects.size());
+            ImGui::Text("B o x e s: %d", physics.objects_.size());
         }
         ImGui::End();
 
@@ -945,9 +953,9 @@ int main()
     GUI::shutdown();
     glDeleteVertexArrays(1, &fbo_vbo);
 
-    for (int i = dynamics_world.getNumCollisionObjects() - 1; i >= 0; i--)
+    for (int i = physics.world_.getNumCollisionObjects() - 1; i >= 0; i--)
     {
-        btCollisionObject* obj = dynamics_world.getCollisionObjectArray()[i];
-        dynamics_world.removeCollisionObject(obj);
+        btCollisionObject* obj = physics.world_.getCollisionObjectArray()[i];
+        physics.world_.removeCollisionObject(obj);
     }
 }

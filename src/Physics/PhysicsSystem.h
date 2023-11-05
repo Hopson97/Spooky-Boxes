@@ -28,5 +28,5 @@ class PhysicsSystem
     btCollisionDispatcher collision_dispatcher_;
     btSequentialImpulseConstraintSolver constraint_solver_;
 
-    std::unique_ptr<btBroadphaseInterface> broad_phase_;
+    btDbvtBroadphase broad_phase_;
 };
