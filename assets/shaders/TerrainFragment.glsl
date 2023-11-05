@@ -14,6 +14,9 @@ struct Material
     sampler2D grass_specular;
     sampler2D mud_diffuse;
     sampler2D mud_specular;
+
+    sampler2D snow_diffuse;
+    sampler2D snow_specular;
 };
 
 struct LightBase 
@@ -70,6 +73,8 @@ layout(std140) uniform PointLights
 uniform Material material;
 uniform int light_count;
 uniform vec3 eye_position;
+
+uniform float max_height;
 
 
 
@@ -156,20 +161,44 @@ vec3 calculate_spot_light(SpotLight light, vec3 normal, vec3 eye_direction, vec3
 
 void main()
 {
+/*
+    vec4 base_colour = texture(material.mud_diffuse, pass_texture_coord);
+    if (max_height > 100) {
+        // Transition values
+        float snow_begin = max_height * 0.7;
+        float snow_end = max_height * 0.8;
+
+        float fragment_height = pass_fragment_coord.y;
+
+
+        // Mix transition
+        if (fragment_height > snow_end) {
+            
+        }
+        else if (fragment_height > snow_begin) {
+
+        }
+        else {
+
+        }
+
+
+    }
+    */
     vec3 normal = normalize(pass_normal);
 
-    float mud_weight = dot(vec3(0, 1, 0), normalize(normal * vec3(3, 1, 3)));
-    float grass_weight = 1 - mud_weight;
+    float base_weight = dot(vec3(0, 1, 0), normalize(normal * vec3(3, 1, 3)));
+    float cliff_weight = 1 - base_weight;
 
-    vec4 mud   = texture(material.grass_diffuse, pass_texture_coord);
-    vec4 grass = texture(material.mud_diffuse, pass_texture_coord);
+    vec4 base   = texture(material.grass_diffuse, pass_texture_coord);
+    vec4 cliff = texture(material.mud_diffuse, pass_texture_coord);
 
-    vec4 grass_spec = texture(material.grass_specular, pass_texture_coord);
-    vec4 mud_spec   = texture(material.mud_specular, pass_texture_coord);
+    vec4 base_spec = texture(material.grass_specular, pass_texture_coord);
+    vec4 cliff_spec   = texture(material.mud_specular, pass_texture_coord);
 
-    out_colour = grass * grass_weight + mud_weight * mud;
+    out_colour = cliff * cliff_weight + base_weight * base;
 
-    vec3 specular = vec3(grass_spec * grass_weight + mud_weight * mud_spec);
+    vec3 specular = vec3(cliff_spec * cliff_weight + base_weight * base_spec);
 
 
 

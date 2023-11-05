@@ -207,7 +207,8 @@ int main()
     Material crate_material("assets/textures/crate.png", "assets/textures/grass_specular.png");
 
     Material grass2_material("assets/textures/grass_03.png", "assets/textures/grass_specular.png");
-    Material mud_material("assets/textures/mud.png", "assets/textures/grass_specular.png");
+    Material mud_material("assets/textures/mud.png", "assets/textures/mud_s.png");
+    Material snow_material("assets/textures/snow.png", "assets/textures/snow.png");
 
 
     Material lowres_grass("assets/textures/grass.png", "assets/textures/grass_s.png");
@@ -251,6 +252,7 @@ int main()
     {
         return -1;
     }
+    terrain_shader.set_uniform("max_height", height_map.max_height());
 
     // Shader gbuffer_shader;
     // if (!gbuffer_shader.load_from_file("assets/shaders/GBufferVertex.glsl",
@@ -522,6 +524,9 @@ int main()
     terrain_shader.set_uniform("material.mud_diffuse", 2);
     terrain_shader.set_uniform("material.mud_specular", 3);
 
+    terrain_shader.set_uniform("material.snow_diffuse", 4);
+    terrain_shader.set_uniform("material.snow_specular", 5);
+
     //  -------------------
     //  ==== Main Loop ====
     //  -------------------
@@ -785,6 +790,7 @@ int main()
 
         grass2_material.bind(0, 1);
         mud_material.bind(2, 3);
+        snow_material.bind(4, 5);
 
         terrain_shader.set_uniform("model_matrix", terrain_mat);
         terrain_shader.set_uniform("eye_position", camera.transform.position);
