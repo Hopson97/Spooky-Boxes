@@ -10,8 +10,7 @@ struct PhysicsObject
     std::unique_ptr<btCollisionShape> collision_shape;
     std::unique_ptr<btDefaultMotionState> motion_state;
     std::unique_ptr<btRigidBody> body;
-
-    bool is_box = false;
+    void setup(std::unique_ptr<btCollisionShape> collision_shape, float mass, btVector3 position);
 };
 
 class PhysicsSystem
@@ -20,8 +19,8 @@ class PhysicsSystem
     PhysicsSystem();
 
   public:
-    btDiscreteDynamicsWorld world_;
-    std::vector<PhysicsObject> objects_;
+    btDiscreteDynamicsWorld world;
+    std::vector<PhysicsObject> objects;
 
   private:
     btDefaultCollisionConfiguration config_;
