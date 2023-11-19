@@ -132,5 +132,6 @@ inline void Mesh<VertexType>::draw(GLenum draw_mode) const
 [[nodiscard]] BasicMesh generate_quad_mesh(float w, float h);
 [[nodiscard]] BasicMesh generate_plane_mesh(float w, float d);
 [[nodiscard]] BasicMesh generate_cube_mesh(const glm::vec3& size, bool repeat_texture);
+[[nodiscard]] BasicMesh generate_centered_cube_mesh(const glm::vec3& size);
 [[nodiscard]] BasicMesh generate_terrain_mesh(const HeightMap& height_map);
 void update_terrain_mesh(BasicMesh& mesh, const HeightMap& height_map);

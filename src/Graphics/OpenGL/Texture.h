@@ -76,10 +76,22 @@ struct Texture2D : public GLTextureResource
     GLuint create(GLsizei width, GLsizei height, GLsizei levels = 1,
                   TextureFormat format = TextureFormat::RGB8);
 
-    bool load_from_file(const std::filesystem::path& path, GLsizei levels,
-                        bool flip_vertically, bool flip_horizontally,
+    bool load_from_file(const std::filesystem::path& path, GLsizei levels, bool flip_vertically,
+                        bool flip_horizontally,
                         TextureInternalFormat internal_format = TextureInternalFormat::RGBA,
                         TextureFormat format = TextureFormat::RGBA8);
+
+    bool is_loaded() const;
+
+  private:
+    bool is_loaded_ = false;
+};
+
+struct CubeMapTexture : public GLTextureResource
+{
+    CubeMapTexture();
+
+    bool load_from_file(const std::filesystem::path& folder);
 
     bool is_loaded() const;
 

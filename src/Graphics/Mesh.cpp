@@ -106,6 +106,64 @@ BasicMesh generate_cube_mesh(const glm::vec3& dimensions, bool repeat_texture)
     return mesh;
 }
 
+BasicMesh generate_centered_cube_mesh(const glm::vec3& dimensions)
+{
+    BasicMesh mesh;
+
+    float w = dimensions.x;
+    float h = dimensions.y;
+    float d = dimensions.z;
+
+    // clang-format off
+    mesh.vertices = {
+        {{w, h, d}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},  
+        {{-w, h, d}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+        {{-w, -h, d}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},  
+        {{w, -h, d}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
+
+        {{-w, h, d}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}}, 
+        {{-w, h, -d}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
+        {{-w, -h, -d}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}}, 
+        {{-w, -h, d}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
+
+        {{-w, h, -d}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}}, 
+        {{w, h, -d}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
+        {{w, -h, -d}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}, 
+        {{-w, -h, -d}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
+
+        {{w, h, -d}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},  
+        {{w, h, d}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+        {{w, -h, d}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},  
+        {{w, -h, -d}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+
+        {{w, h, -d}, {1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},  
+        {{-w, h, -d}, {0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+        {{-w, h, d}, {0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},  
+        {{w, h, d}, {1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
+
+        {{-w, -h, -d}, {1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}}, 
+        {{w, -h, -d}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
+        {{w, -h, d}, {0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}}, 
+        {{-w, -h, d}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
+    };
+    // clang-format on
+
+    int index = 0;
+    for (int i = 0; i < 6; i++)
+    {
+        mesh.indices.push_back(index);
+        mesh.indices.push_back(index + 1);
+        mesh.indices.push_back(index + 2);
+        mesh.indices.push_back(index + 2);
+        mesh.indices.push_back(index + 3);
+        mesh.indices.push_back(index);
+        index += 4;
+    }
+    mesh.buffer();
+
+    return mesh;
+}
+
 BasicMesh generate_terrain_mesh(const HeightMap& height_map)
 {
     BasicMesh mesh;

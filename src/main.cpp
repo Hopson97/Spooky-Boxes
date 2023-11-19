@@ -105,6 +105,11 @@ namespace
             move *= 50.0f;
         }
 
+        if (!flying)
+        {
+            move.y = 0;
+        }
+
         return move;
     }
 
@@ -141,7 +146,7 @@ int main()
     context_settings.minorVersion = 5;
     context_settings.attributeFlags = sf::ContextSettings::Core;
 
-    sf::Window window({1600, 900}, "g", sf::Style::Default, context_settings);
+    sf::Window window({1600, 900}, "T e r r a i n", sf::Style::Default, context_settings);
     window.setVerticalSyncEnabled(true);
     bool mouse_locked = false;
 
@@ -154,6 +159,7 @@ int main()
         std::cerr << "Failed to init OpenGL - Is OpenGL linked correctly?\n";
         return -1;
     }
+    glClearColor(0.25, 0.7, 0.9, 1.0);
     glViewport(0, 0, window.getSize().x, window.getSize().y);
     init_opengl_debugging();
 
@@ -173,11 +179,11 @@ int main()
     // height_map.set_base_height();
 
     TerrainGenerationOptions options;
+    options.generate_island = false;
+    /*
+
     options.seed = rand() % 50000;
     options.seed = 3339;
-    options.generate_island = false;
-
-    /*
     options.seed = 2777;
     options.amplitude = 317;
     options.amplitude_dampen = 19.1f;
@@ -194,6 +200,9 @@ int main()
     auto water_mesh = generate_plane_mesh(height_map.size, height_map.size);
     auto light_vertex_mesh = generate_cube_mesh({5.2f, 5.2f, 5.2f}, false);
     auto box_vertex_mesh = generate_cube_mesh({1.0f, 1.0f, 1.0f}, false);
+    
+    auto size = 500.0f;
+    auto skybox_mesh = generate_centered_cube_mesh({size, size, size});
 
     Model model;
     model.load_from_file("assets/models/House/House2.obj");
@@ -210,6 +219,9 @@ int main()
     Material mud_material("assets/textures/mud.png", "assets/textures/mud_s.png");
     Material snow_material("assets/textures/snow.png", "assets/textures/snow.png");
 
+    CubeMapTexture skybox_texture;
+    skybox_texture.load_from_file("assets/textures/skybox/");
+
     // ---------------------------------------
     // ==== Create the OpenGL Framebuffer ====
     // ---------------------------------------
@@ -223,18 +235,12 @@ int main()
     // --------------------------------------------------
     // ==== Create empty VBO for rendering to window ====
     // --------------------------------------------------
-    GLuint fbo_vbo;
-    glCreateVertexArrays(1, &fbo_vbo);
+    VertexArray fbo_vbo;
 
     // ----------------------
     // ==== Load shaders ====
     // ----------------------
     Shader scene_shader;
-    // if (!scene_shader.load_from_file("assets/shaders/ScreenVertex.glsl",
-    //                                  "assets/shaders/SceneFragmentDeferred.glsl"))
-    //{
-    //     return -1;
-    // }
     if (!scene_shader.load_from_file("assets/shaders/SceneVertex.glsl",
                                      "assets/shaders/SceneFragment.glsl"))
     {
@@ -263,6 +269,13 @@ int main()
         return -1;
     }
 
+    Shader skybox_shader;
+    if (!skybox_shader.load_from_file("assets/shaders/SkyboxVertex.glsl",
+                                   "assets/shaders/SkyboxFragment.glsl"))
+    {
+        return -1;
+    }
+
     // -----------------------------------
     // ==== Entity Transform Creation ====
     // -----------------------------------
@@ -270,8 +283,11 @@ int main()
     Transform water_transform;
     Transform light_transform;
     Transform model_transform;
-    model_transform.position = {100, height_map.get_height(100, 100), 100};
-    model_transform.scale = {2, 2, 2};
+    {
+        auto middle = height_map.size / 2.0f;
+        model_transform.position = {middle, height_map.get_height(middle, middle), middle};
+        model_transform.scale = {2, 2, 2};
+    }
 
     water_transform.position.y = options.water_level;
 
@@ -288,6 +304,9 @@ int main()
     std::vector<Transform> people_transforms;
     for (int i = 0; i < 50; i++)
     {
+        // float x = height_map.size / 2 + rand() % 25 - 50;
+        // float z = height_map.size / 2 + rand() % 100 - 50;
+
         float x = static_cast<float>(rand() % (height_map.size - 2)) + 1;
         float z = static_cast<float>(rand() % (height_map.size - 2)) + 1;
 
@@ -301,9 +320,19 @@ int main()
     // -----------------------------------
     // PerspectiveCamera camera(window.getSize().x, window.getSize().y, 75.0f);
     PerspectiveCamera camera(window.getSize().x, window.getSize().y, 75.0f);
-    // camera.transform.position = {80.0f, 1.0f, 35.0f};
+
     camera.transform.rotation = {0.0f, 100, 0.0f};
-    camera.transform.position = {15, height_map.max_height(), 15};
+    camera.transform.position = {15, height_map.max_height(), 440};
+
+    // Spooky Settings
+    /*
+    camera.transform.rotation = {0.0f, 100, 0.0f};
+    camera.transform.position = {225, 11.5, 255};
+    settings.lights.dir_light.direction = {0.9, -1.5, 0.075, -1};
+    settings.lights.dir_light.ambient_intensity = 0.03f;
+    settings.lights.dir_light.diffuse_intensity = 0.1f;
+    settings.lights.spot_light.cutoff = 15.0f;
+    */
 
     // ----------------------------
     // ==== Load sound effects ====
@@ -441,6 +470,8 @@ int main()
     scene_shader.bind_uniform_block_index("Light", 1);
     scene_shader.bind_uniform_block_index("PointLights", 2);
 
+    skybox_shader.bind_uniform_block_index("matrix_data", 0);
+
     terrain_shader.bind_uniform_block_index("matrix_data", 0);
     terrain_shader.bind_uniform_block_index("Light", 1);
     terrain_shader.bind_uniform_block_index("PointLights", 2);
@@ -488,7 +519,7 @@ int main()
                 else if (e.key.code == sf::Keyboard::B)
                 {
                     // Size of the boxe quad
-                    float width = 2;
+                    float width = 3;
 
                     // X/Z start position
                     float base = model_transform.position.x;
@@ -497,34 +528,36 @@ int main()
                     float start = height_map.get_height(base, base) + 25;
 
                     // Height of the box stack
-                    float height = 20;
+                    float height = 25;
+
+                    float mass = 0.25f;
 
                     for (float y = start; y < start + height; y++)
                     {
                         for (float x = base; x < base + width; x++)
                         {
-                            add_dynamic_shape({x, y, base}, {0, 0, 0}, 1.0f);
+                            add_dynamic_shape({x, y, base}, {0, 0, 0}, mass);
                         }
                     }
                     for (float y = start; y < start + height; y++)
                     {
                         for (float x = base; x < base + width; x++)
                         {
-                            add_dynamic_shape({x, y, base + width}, {0, 0, 0}, 1.0f);
+                            add_dynamic_shape({x, y, base + width}, {0, 0, 0}, mass);
                         }
                     }
                     for (float y = start; y < start + height; y++)
                     {
                         for (float z = base; z < base + width + 1; z++)
                         {
-                            add_dynamic_shape({base - 1, y, z}, {0, 0, 0}, 1.0f);
+                            add_dynamic_shape({base - 1, y, z}, {0, 0, 0}, mass);
                         }
                     }
                     for (float y = start; y < start + height; y++)
                     {
                         for (float z = base; z < base + width + 1; z++)
                         {
-                            add_dynamic_shape({base + width, y, z}, {0, 0, 0}, 1.0f);
+                            add_dynamic_shape({base + width, y, z}, {0, 0, 0}, mass);
                         }
                     }
                 }
@@ -569,8 +602,10 @@ int main()
         // ==== Sound handling ====
         // ------------------------
         // Walking sound effects
-        if ((std::abs(translate.x + translate.y + translate.z) > 0) &&
-            camera.transform.position.y > 0.5 && camera.transform.position.y < 1.5)
+
+        auto cam_pos = camera.transform.position;
+        auto height = height_map.get_height(cam_pos.x, cam_pos.z);
+        if ((std::abs(translate.x + translate.y + translate.z) > 0) && cam_pos.y < height + 1.0f)
         {
             if (walk_sounds[sound_idx].getStatus() != sf::Sound::Status::Playing)
             {
@@ -594,6 +629,11 @@ int main()
                 [&](auto dt)
                 {
                     camera.transform.position += translate * dt.asSeconds();
+
+                    if (cam_pos.y > height + 0.25)
+                    {
+                        cam_pos -= 0.5f;
+                    }
 
                     light_transform.position.x +=
                         glm::sin(game_time_now.asSeconds() * 0.55f) * dt.asSeconds() * 3.0f;
@@ -728,7 +768,7 @@ int main()
         scene_shader.bind();
         scene_shader.set_uniform("eye_position", camera.transform.position);
 
-        crate_material.bind();
+        person_material.bind();
         box_vertex_mesh.bind();
         for (auto& box_transform : physics.objects)
         {
@@ -784,7 +824,7 @@ int main()
             glm::mat4 m{1.0f};
             m = glm::translate(m, {light.position.x, light.position.y, light.position.z});
             scene_shader.set_uniform("model_matrix", m);
-            light_vertex_mesh.draw();
+            // light_vertex_mesh.draw();
         }
 
         rendering_profile.end_section();
@@ -797,6 +837,16 @@ int main()
             debug_renderer.render();
             debug_render_profile.end_section();
         }
+
+        // ---------------------
+        // ==== S k y b o x ====
+        // ---------------------
+        glCullFace(GL_FRONT);
+        skybox_mesh.bind();
+        skybox_texture.bind(0);
+        skybox_shader.bind();
+        skybox_mesh.draw();
+        glCullFace(GL_BACK);
 
         // -----------------------
         // ==== Render to FBO ====
@@ -826,7 +876,7 @@ int main()
         fbo_shader.bind();
 
         // Render
-        glBindVertexArray(fbo_vbo);
+        fbo_vbo.bind();
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         full_render_profiler.end_section();
@@ -870,7 +920,6 @@ int main()
     // ==== Graceful Cleanup ====
     // --------------------------
     GUI::shutdown();
-    glDeleteVertexArrays(1, &fbo_vbo);
 
     for (int i = physics.world.getNumCollisionObjects() - 1; i >= 0; i--)
     {

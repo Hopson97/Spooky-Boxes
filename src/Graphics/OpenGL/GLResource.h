@@ -7,11 +7,11 @@
 
 // clang-format off
 /**
- * @brief Wrapper class for any OpenGL function that has a standard glCreate* or glDelete* function
+ * @brief Wrapper class for any OpenGL object that has a standard glCreate* or glDelete* function
  * for construction and destruction
  * 
  * @tparam CreateFunction Function to create an OpenGL object (eg &glCreateVertexArrays)
- * @tparam DeleteFunction Function to delete an OpenGL object (eg &glCreateVertexArrays) 
+ * @tparam DeleteFunction Function to delete an OpenGL object (eg &glDeleteVertexArrays) 
  */
 template<auto& CreateFunction, auto& DeleteFunction>
 struct GLResource

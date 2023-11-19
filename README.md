@@ -1,8 +1,6 @@
-# SFML-OpenGL-Template
+# Bullet Terrain
 
-A template for creating OpenGL applications using SFML, including ImGui and Assimp.
-
-This has RAII wrappers around the OpenGL objects such as VAOs, VBOs, and Shaders which makes it a lot easier to use OpenGL.
+Project to just learn a bit more about terrain rendering, and to learn how bullet phyiscs works.
 
 ## Building and Running
 
@@ -92,6 +90,14 @@ https://www.youtube.com/user/ThinMatrix
 ---
 
 """Person""" texture by me
+
+---
+
+Skybox texture from ThinMatrix tutorial, also from here: https://opengameart.org/content/miramar-skybox
+
+https://www.dropbox.com/sh/phslacd8v9i17wb/AABui_-C-yhKvZ1H2wb3NykIa?dl=0
+
+https://www.youtube.com/watch?v=_Ix5oN8eC1E
 
 #### Sounds
 

@@ -105,7 +105,6 @@ void DebugRenderer::gui()
 {
     static bool bt_wireframe = false;
     static bool bt_aabb = false;
-    static bool gl_wireframe = false;
     static GLfloat gl_line_width = 1;
 
     if (ImGui::Begin("Debug Rendering"))
@@ -115,7 +114,7 @@ void DebugRenderer::gui()
         ImGui::Checkbox("AABBs", &bt_aabb);
         ImGui::Separator();
         ImGui::Text("Misc Debug Options");
-        ImGui::Checkbox("Wireframe", &gl_wireframe);
+        ImGui::Checkbox("Wireframe", &gl_wireframe_);
         if (ImGui::SliderFloat("Line Width", &gl_line_width, 1.0f, 16.0f))
         {
             glLineWidth(gl_line_width);
