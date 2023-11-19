@@ -48,7 +48,13 @@ HeightMap::HeightMap(int size)
 
 float HeightMap::get_height(int x, int z) const
 {
-    return heights[z * size + x];
+    auto calc = z * size + x;
+
+    if (calc < 0 || calc >= heights.size())
+    {
+        return 0;
+    }
+    return heights[calc];
 }
 
 void HeightMap::set_height(int x, int z, float height)
