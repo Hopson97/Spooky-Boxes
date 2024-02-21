@@ -1,6 +1,7 @@
 #include "HeightMap.h"
 
 #include <cassert>
+#include <fstream>
 #include <imgui.h>
 #include <iostream>
 #include <unordered_map>
@@ -9,6 +10,7 @@
 #include <imgui.h>
 
 #include "../GUI.h"
+#include "Util.h"
 
 namespace
 {
@@ -59,6 +61,7 @@ float HeightMap::get_height(int x, int z) const
 
 void HeightMap::set_height(int x, int z, float height)
 {
+    assert(x >= 0 && z >= 0 && x < size && z < size);
     heights[z * size + x] = height;
 }
 
@@ -154,6 +157,93 @@ HeightMap HeightMap::from_image(const std::filesystem::path& path)
             height_map.set_height(x, z, height);
         }
     }
+    return height_map;
+}
+
+HeightMap HeightMap::from_ascii(const std::filesystem::path& path, float scale)
+{
+    const static std::string numbers = "-0123456789";
+    std::ifstream ascii_file(path);
+    std::string line;
+
+    enum class State
+    {
+        GetColumn,
+        GetRows,
+        InitMap,
+        SkipMeta,
+        GetData,
+    };
+    auto read_state = State::GetColumn;
+
+    int rows = 0;
+    int columns = 0;
+
+    while (std::getline(ascii_file, line))
+    {
+        switch (read_state)
+        {
+            case State::GetColumn:
+            {
+                columns = std::stoi(line.substr(line.find_first_of(numbers), line.length() - 1));
+                read_state = State::GetRows;
+                break;
+            }
+
+            case State::GetRows:
+            {
+                rows = std::stoi(line.substr(line.find_first_of(numbers), line.length() - 1));
+                read_state = State::InitMap;
+                break;
+            }
+        }
+
+        if (read_state == State::InitMap)
+        {
+            break;
+        }
+    }
+
+    assert(rows == columns);
+    HeightMap height_map{rows};
+    read_state = State::SkipMeta;
+
+    int x = 0;
+    int y = 0;
+    while (std::getline(ascii_file, line))
+    {
+        switch (read_state)
+        {
+            case State::SkipMeta:
+            {
+                if (line.find_first_of(numbers) == 1)
+                {
+                    read_state = State::GetData;
+                }
+                break;
+            }
+
+            case State::GetData:
+            {
+                if (line[0] == ' ')
+                {
+                    line.erase(0, 1);
+                }
+
+                auto heights = split_string(line);
+                for (auto& height : heights)
+                {
+                    height_map.set_height(x, y, std::stof(height) / scale);
+                    x++;
+                }
+                y++;
+                x = 0;
+            }
+        }
+    }
+
+
+
     return height_map;
 }
 

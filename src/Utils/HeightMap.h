@@ -32,6 +32,7 @@ struct HeightMap
     std::vector<float> heights;
     const int size;
 
+    HeightMap() = default;
     HeightMap(int size);
 
     float get_height(int x, int z) const;
@@ -45,6 +46,7 @@ struct HeightMap
     void generate_terrain(const TerrainGenerationOptions& options);
 
     static HeightMap from_image(const std::filesystem::path& path);
+    static HeightMap from_ascii(const std::filesystem::path& path, float scale);
 
     bool gui();
 
