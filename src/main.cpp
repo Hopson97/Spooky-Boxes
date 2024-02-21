@@ -78,7 +78,13 @@ namespace
         sf::Time lag_ = sf::Time::Zero;
     };
 
-    glm::vec3 get_keyboard_input(const Transform& transform, bool flying)
+    struct InputResult
+    {
+        glm::vec3 move{0.0};
+        bool jump = false;
+    };
+
+    InputResult get_keyboard_input(const Transform& transform, bool flying, bool grounded)
     {
         // Keyboard Input
         glm::vec3 move{0.0f};
@@ -105,12 +111,19 @@ namespace
             move *= 50.0f;
         }
 
+        bool jump = false;
+        if (grounded && sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+        {
+            move.y += 5.0f;
+            jump = true;
+        }
+
         if (!flying)
         {
             move.y = 0;
         }
 
-        return move;
+        return InputResult{move, jump};
     }
 
     void get_mouse_move_input(Transform& transform, const sf::Window& window)
@@ -134,7 +147,15 @@ namespace
         }
     }
 
+
 } // namespace
+
+bool callbackFunc(btManifoldPoint& cp, const btCollisionObject* obj1, int id1, int index1,
+                  const btCollisionObject* obj2, int id2, int index2)
+{
+
+    return false;
+}
 
 int main()
 {
@@ -174,13 +195,12 @@ int main()
     // -----------------------------------------------------------
     auto billboard_vertex_array = generate_quad_mesh(1.0f, 2.0f);
 
-    HeightMap height_map{512};
     // auto height_map = HeightMap::from_image("assets/heightmaps/test4.png");
+    // auto height_map = HeightMap::from_ascii("assets/asciis/uk.asc", 1);
     // height_map.set_base_height();
 
     TerrainGenerationOptions options;
     options.generate_island = false;
-    /*
 
     options.seed = rand() % 50000;
     options.seed = 3339;
@@ -190,18 +210,18 @@ int main()
     options.lacunarity = 2.0f;
     options.octaves = 8;
     options.water_level = 138;
-    */
 
     std::cout << "Seed: " << options.seed << "\n";
+    HeightMap height_map{512};
     height_map.generate_terrain(options);
-    height_map.set_base_height();
+    // height_map.set_base_height();
 
     auto terrain_mesh = generate_terrain_mesh(height_map);
     auto water_mesh = generate_plane_mesh(height_map.size, height_map.size);
     auto light_vertex_mesh = generate_cube_mesh({5.2f, 5.2f, 5.2f}, false);
     auto box_vertex_mesh = generate_cube_mesh({1.0f, 1.0f, 1.0f}, false);
-    
-    auto size = 500.0f;
+
+    auto size = 3000.0f;
     auto skybox_mesh = generate_centered_cube_mesh({size, size, size});
 
     Model model;
@@ -218,6 +238,8 @@ int main()
     Material grass_material("assets/textures/grass_03.png", "assets/textures/grass_specular.png");
     Material mud_material("assets/textures/mud.png", "assets/textures/mud_s.png");
     Material snow_material("assets/textures/snow.png", "assets/textures/snow.png");
+
+    Material water("assets/textures/blue.png", "assets/textures/blue.png");
 
     CubeMapTexture skybox_texture;
     skybox_texture.load_from_file("assets/textures/skybox/");
@@ -271,7 +293,7 @@ int main()
 
     Shader skybox_shader;
     if (!skybox_shader.load_from_file("assets/shaders/SkyboxVertex.glsl",
-                                   "assets/shaders/SkyboxFragment.glsl"))
+                                      "assets/shaders/SkyboxFragment.glsl"))
     {
         return -1;
     }
@@ -283,13 +305,12 @@ int main()
     Transform water_transform;
     Transform light_transform;
     Transform model_transform;
-    {
-        auto middle = height_map.size / 2.0f;
-        model_transform.position = {middle, height_map.get_height(middle, middle), middle};
-        model_transform.scale = {2, 2, 2};
-    }
+    auto middle = height_map.size / 2.0f;
+    model_transform.position = {middle, height_map.get_height(middle, middle), middle};
+    model_transform.scale = {2, 2, 2};
 
-    water_transform.position.y = options.water_level;
+    water_transform.position.y = 0;
+    options.water_level;
 
     std::array<PointLight, 5> point_lights;
     for (int i = 0; i < 5; i++)
@@ -322,7 +343,12 @@ int main()
     PerspectiveCamera camera(window.getSize().x, window.getSize().y, 75.0f);
 
     camera.transform.rotation = {0.0f, 100, 0.0f};
-    camera.transform.position = {15, height_map.max_height(), 440};
+    // camera.transform.position = {15, height_map.max_height(), 440};
+    camera.transform.position = {235, 150, middle};
+
+    Transform player_transform;
+    player_transform.position = {240, 145, middle};
+    bool player_grounded = false;
 
     // Spooky Settings
     /*
@@ -396,8 +422,28 @@ int main()
 
         ground.setup(std::make_unique<btBvhTriangleMeshShape>(&terrain_collision_mesh, true, true),
                      0, {0, 0, 0});
+        ground.body->setUserIndex(101);
 
         physics.world.addRigidBody(ground.body.get());
+    }
+
+    // ----------------------------------------------------
+    // ==== Bullet3D Experiments: Player ====
+    // ----------------------------------------------------
+    int player_index = 0;
+    {
+        PhysicsObject& player = physics.objects.emplace_back();
+        player_index = physics.objects.size() - 1;
+
+        auto shape = std::make_unique<btCapsuleShape>(0.5, 1);
+        //shape->calculateLocalInertia(1, {0,0,0})
+
+        player.setup(std::move(shape), 1, to_btvec3(player_transform.position));
+        player.body->setFriction(0);
+        player.body->setAngularFactor(0);
+        player.body->setUserIndex(100);
+
+        physics.world.addRigidBody(player.body.get());
     }
 
     // ----------------------------------------------------
@@ -439,7 +485,7 @@ int main()
 
         box.setup(std::make_unique<btBoxShape>(btVector3{0.5f, 0.5f, 0.5f}), mass,
                   to_btvec3(position));
-        box.body->applyCentralForce({force.x, force.y, force.z});
+        box.body->setLinearVelocity({force.x, force.y, force.z});
         physics.world.addRigidBody(box.body.get());
     };
 
@@ -581,11 +627,11 @@ int main()
 
         // ---------------
         // ==== Input ====
-        // ---------------
-
+        // --------------- 
         auto& input_profiler = profiler.begin_section("Input");
         auto SPEED = 3.0f;
-        auto translate = get_keyboard_input(camera.transform, true) * SPEED;
+        auto input = get_keyboard_input(player_transform, true, player_grounded);
+        auto translate = input.move * SPEED;
 
         if (!mouse_locked)
         {
@@ -628,8 +674,19 @@ int main()
             time_step.update(
                 [&](auto dt)
                 {
-                    camera.transform.position += translate * dt.asSeconds();
+                    auto& player = physics.objects[player_index];
+                    
+                    // camera.transform.position += translate * dt.asSeconds();
+                    auto move = to_btvec3(translate);
 
+                    if (!input.jump)
+                    {
+                        translate.y = player.body->getLinearVelocity().y();
+                    }
+
+
+                    player.body->setLinearVelocity(to_btvec3(translate));
+                    player_transform.position += translate * dt.asSeconds();
                     if (cam_pos.y > height + 0.25)
                     {
                         cam_pos -= 0.5f;
@@ -673,21 +730,28 @@ int main()
         }
 
         // Iterate through collisions?
-        /*
+        
         for (int i = 0; i < physics.world.getDispatcher()->getNumManifolds(); i++)
         {
             auto manifold = physics.world.getDispatcher()->getManifoldByIndexInternal(i);
-            auto obj_a = manifold->getBody0();
-            auto obj_b = manifold->getBody1();
-            if (obj_a && obj_b)
+            if (manifold->getNumContacts() > 0)
             {
-                if (manifold->getNumContacts() > 0)
+                auto obj_a = manifold->getBody0();
+                auto obj_b = manifold->getBody1();
+                if (obj_a->getUserIndex() && obj_b->getUserIndex())
                 {
-                    // collisoon...
+                    std::cout << " G R O U N D \n";
+                    player_grounded = true;
+                    break;
                 }
+                
             }
         }
-        */
+
+
+
+            gContactAddedCallback = callbackFunc;
+        
         // -------------------------------
         // ==== Transform Calculations ====
         // -------------------------------
@@ -806,10 +870,11 @@ int main()
 
         // ==== Render Water ====
         {
+            water.bind();
             water_mesh.bind();
             glCullFace(GL_FRONT);
             scene_shader.set_uniform("model_matrix", create_model_matrix(water_transform));
-            // water_mesh.draw();
+            water_mesh.draw();
             glCullFace(GL_BACK);
         }
 
@@ -826,6 +891,16 @@ int main()
             scene_shader.set_uniform("model_matrix", m);
             // light_vertex_mesh.draw();
         }
+
+        // ==== Render Player ====
+        // glm::mat4 m{1.0f};
+        // box_transform.body->getWorldTransform().getOpenGLMatrix(glm::value_ptr(m));
+        auto m = create_model_matrix(player_transform);
+        // m = glm::translate(m, {-0.5, -0.5, -0.5});
+        scene_shader.set_uniform("model_matrix", m);
+        box_vertex_mesh.bind();
+        person_material.bind();
+        box_vertex_mesh.draw();
 
         rendering_profile.end_section();
 
@@ -885,7 +960,7 @@ int main()
         // ==== End Frame ====
         // --------------------------
         // ImGui::ShowDemoWindow();
-
+        camera.gui();
         GUI::debug_window(camera.transform.position, camera.transform.rotation, settings);
         debug_renderer.gui();
 
@@ -899,7 +974,8 @@ int main()
         {
             auto& time = profiler.begin_section("Terrain Re-Gen");
             height_map.generate_terrain(options);
-            water_transform.position.y = options.water_level - height_map.set_base_height();
+            water_transform.position.y = 0;
+            options.water_level - height_map.set_base_height();
 
             update_terrain_mesh(terrain_mesh, height_map);
 
