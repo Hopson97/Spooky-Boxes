@@ -13,6 +13,7 @@
 namespace fs = std::filesystem;
 
 std::string read_file_to_string(const std::filesystem::path& file_path);
+std::vector<std::string> split_string(const std::string& string, char delim = ' ');
 
 template <typename N, typename T>
 sf::Vector2<N> cast_vector(const sf::Vector2<T>& vec)
