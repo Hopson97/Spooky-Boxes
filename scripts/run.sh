@@ -1,9 +1,8 @@
 #!/bin/bash
 
-echo "Running OGL Template"
 if [ "$1" = "release" ]
 then
-    ./build/release/bin/ogl_template  
+    ./build/release/PROJECT_NAME_PLACEHOLDER
 else
-    ./build/debug/bin/ogl_template  
+    ./build/debug/PROJECT_NAME_PLACEHOLDER
 fi

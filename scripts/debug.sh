@@ -1,4 +1,4 @@
 #!/bin/bash
 
 ./scripts/build.sh
-gdb ./build/debug/bin/ogl_template  
+gdb ./build/debug/PROJECT_NAME_PLACEHOLDER  
