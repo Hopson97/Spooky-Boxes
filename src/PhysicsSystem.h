@@ -7,6 +7,7 @@
 
 struct PhysicsObject
 {
+    int id = -1;
     std::unique_ptr<btCollisionShape> collision_shape;
     std::unique_ptr<btDefaultMotionState> motion_state;
     std::unique_ptr<btRigidBody> body;

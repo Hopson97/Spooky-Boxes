@@ -147,13 +147,15 @@ namespace
         }
     }
 
-
 } // namespace
 
-bool callbackFunc(btManifoldPoint& cp, const btCollisionObject* obj1, int id1, int index1,
-                  const btCollisionObject* obj2, int id2, int index2)
+bool callbackFunc(btManifoldPoint& cp, const btCollisionObjectWrapper* a, int partId0, int index0,
+                  const btCollisionObjectWrapper* b, int partId1, int index1)
 {
+    auto objectA = static_cast<PhysicsObject*>(a->getCollisionObject()->getUserPointer());
+    auto objectB = static_cast<PhysicsObject*>(b->getCollisionObject()->getUserPointer());
 
+    std::cout << "Object '" << objectA->id << "' collided with '" << objectA->id << "'\n";
     return false;
 }
 
@@ -306,7 +308,7 @@ int main()
     Transform light_transform;
     Transform model_transform;
     auto middle = height_map.size / 2.0f;
-    model_transform.position = {middle, height_map.get_height(middle, middle), middle};
+    model_transform.position = {middle, height_map.get_height(middle, middle) * 1, middle};
     model_transform.scale = {2, 2, 2};
 
     water_transform.position.y = 0;
@@ -422,7 +424,8 @@ int main()
 
         ground.setup(std::make_unique<btBvhTriangleMeshShape>(&terrain_collision_mesh, true, true),
                      0, {0, 0, 0});
-        ground.body->setUserIndex(101);
+        ground.body->setUserPointer(&ground);
+        ground.id = 100;
 
         physics.world.addRigidBody(ground.body.get());
     }
@@ -436,14 +439,16 @@ int main()
         player_index = physics.objects.size() - 1;
 
         auto shape = std::make_unique<btCapsuleShape>(0.5, 1);
-        //shape->calculateLocalInertia(1, {0,0,0})
+        // shape->calculateLocalInertia(1, {0,0,0})
 
         player.setup(std::move(shape), 1, to_btvec3(player_transform.position));
         player.body->setFriction(0);
         player.body->setAngularFactor(0);
         player.body->setUserIndex(100);
+        player.body->setUserPointer(&player);
 
         physics.world.addRigidBody(player.body.get());
+        player.id = 101;
     }
 
     // ----------------------------------------------------
@@ -474,6 +479,8 @@ int main()
             to_btvec3(model_transform.position));
 
         physics.world.addRigidBody(mesh_object.body.get());
+
+        mesh_object.body->setUserPointer(&mesh_object);
     }
 
     // --------------------------------------------------------
@@ -487,6 +494,7 @@ int main()
                   to_btvec3(position));
         box.body->setLinearVelocity({force.x, force.y, force.z});
         physics.world.addRigidBody(box.body.get());
+        box.body->setUserPointer(&box);
     };
 
     DebugRenderer debug_renderer(camera);
@@ -627,7 +635,7 @@ int main()
 
         // ---------------
         // ==== Input ====
-        // --------------- 
+        // ---------------
         auto& input_profiler = profiler.begin_section("Input");
         auto SPEED = 3.0f;
         auto input = get_keyboard_input(player_transform, true, player_grounded);
@@ -665,6 +673,9 @@ int main()
             }
         }
 
+        camera.transform.position.x = player_transform.position.x;
+        camera.transform.position.z = player_transform.position.z;
+
         // ----------------------------------
         // ==== Update w/ Fixed timestep ====
         // ----------------------------------
@@ -675,7 +686,7 @@ int main()
                 [&](auto dt)
                 {
                     auto& player = physics.objects[player_index];
-                    
+
                     // camera.transform.position += translate * dt.asSeconds();
                     auto move = to_btvec3(translate);
 
@@ -683,7 +694,6 @@ int main()
                     {
                         translate.y = player.body->getLinearVelocity().y();
                     }
-
 
                     player.body->setLinearVelocity(to_btvec3(translate));
                     player_transform.position += translate * dt.asSeconds();
@@ -730,7 +740,7 @@ int main()
         }
 
         // Iterate through collisions?
-        
+        /*
         for (int i = 0; i < physics.world.getDispatcher()->getNumManifolds(); i++)
         {
             auto manifold = physics.world.getDispatcher()->getManifoldByIndexInternal(i);
@@ -744,14 +754,13 @@ int main()
                     player_grounded = true;
                     break;
                 }
-                
+
             }
         }
+        */
 
+        gContactAddedCallback = callbackFunc;
 
-
-            gContactAddedCallback = callbackFunc;
-        
         // -------------------------------
         // ==== Transform Calculations ====
         // -------------------------------
