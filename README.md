@@ -4,15 +4,17 @@ Very scary and spooky project to just learn a bit more about terrain rendering, 
 
 See below screenshots for building instructions.
 
+Video: https://www.youtube.com/watch?v=AtAFFcDJgW4
+
 ## Controls
 
-* WASD - Movement
-* Hold Left Control - Go faster
-* Space - Launch a spooky cube
-* B - Drop spooky cubes on the spooky shed
-* L - Toggle camera lock
-* F - Toggle flying
-* F1 - Toggle debug GUI
+- WASD - Movement
+- Hold Left Control - Go faster
+- Space - Launch a spooky cube
+- B - Drop spooky cubes on the spooky shed
+- L - Toggle camera lock
+- F - Toggle flying
+- F1 - Toggle debug GUI
 
 ## Screenshots
 
