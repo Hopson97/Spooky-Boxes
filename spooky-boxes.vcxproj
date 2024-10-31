@@ -21,10 +21,10 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{44f360e2-4b6f-4259-b3f9-1e074bc58ed1}</ProjectGuid>
-    <RootNamespace>opengl-bullet-testing</RootNamespace>
+    <ProjectGuid>{a8f1dcc1-7e1a-43fd-96c4-e6bd9c626405}</ProjectGuid>
+    <RootNamespace>spooky-boxes</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>opengl-bullet-testing</ProjectName>
+    <ProjectName>spooky-boxes</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -71,6 +71,12 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <EnableClangTidyCodeAnalysis>true</EnableClangTidyCodeAnalysis>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <EnableClangTidyCodeAnalysis>true</EnableClangTidyCodeAnalysis>
+  </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <VcpkgUseStatic>false</VcpkgUseStatic>
   </PropertyGroup>
@@ -117,9 +123,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\deps;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)deps;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <EnableModules>false</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,9 +140,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\deps;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)deps;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <EnableModules>false</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -164,7 +168,6 @@
     <ClCompile Include="src\GUI.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\PhysicsSystem.cpp" />
-    <ClCompile Include="src\Screens\ScreenManager.cpp" />
     <ClCompile Include="src\Utils\HeightMap.cpp" />
     <ClCompile Include="src\Utils\Maths.cpp" />
     <ClCompile Include="src\Utils\Profiler.cpp" />
@@ -173,31 +176,16 @@
   <ItemGroup>
     <None Include=".clang-format" />
     <None Include=".gitignore" />
-    <None Include="assets\shaders\SkyboxFragment.glsl" />
-    <None Include="assets\shaders\SkyboxVertex.glsl" />
-    <None Include="assets\shaders\TerrainFragment.glsl" />
-    <None Include="assets\shaders\DebugVertex.glsl" />
-    <None Include="assets\shaders\GBufferFragment.glsl" />
-    <None Include="assets\shaders\GBufferVertex.glsl" />
-    <None Include="assets\shaders\SceneFragment.glsl" />
-    <None Include="assets\shaders\SceneFragmentDeferred.glsl" />
-    <None Include="assets\shaders\ScreenFragment.glsl" />
-    <None Include="assets\shaders\ScreenVertex.glsl" />
-    <None Include="assets\shaders\SceneVertex.glsl" />
     <None Include="deps\imgui_sfml\LICENSE" />
-    <None Include="openal32.dll" />
-    <None Include="sfml-audio-d-2.dll" />
-    <None Include="sfml-graphics-2.dll" />
-    <None Include="sfml-graphics-d-2.dll" />
-    <None Include="sfml-network-2.dll" />
-    <None Include="sfml-network-d-2.dll" />
-    <None Include="sfml-system-2.dll" />
-    <None Include="sfml-system-d-2.dll" />
-    <None Include="sfml-window-2.dll" />
-    <None Include="sfml-window-d-2.dll" />
+    <None Include="imgui.ini" />
+    <None Include="README.md" />
+    <None Include="scripts\build.sh" />
+    <None Include="scripts\debug.sh" />
+    <None Include="scripts\run.sh" />
+    <None Include="vcpkg-configuration.json" />
+    <None Include="vcpkg.json" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="assets\shaders\DebugFragment.glsl" />
     <ClInclude Include="deps\FastNoiseLite\FastNoiseLite.h" />
     <ClInclude Include="deps\glad\glad.h" />
     <ClInclude Include="deps\glad\khrplatform.h" />
@@ -219,8 +207,6 @@
     <ClInclude Include="src\Graphics\OpenGL\VertexArray.h" />
     <ClInclude Include="src\GUI.h" />
     <ClInclude Include="src\PhysicsSystem.h" />
-    <ClInclude Include="src\Screens\Screen.h" />
-    <ClInclude Include="src\Screens\ScreenManager.h" />
     <ClInclude Include="src\Settings.h" />
     <ClInclude Include="src\Utils\HeightMap.h" />
     <ClInclude Include="src\Utils\Maths.h" />
@@ -228,24 +214,10 @@
     <ClInclude Include="src\Utils\Util.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="assets\textures\grass.txt" />
-    <Text Include="assets\textures\grass_03.txt" />
     <Text Include="CMakeLists.txt" />
-    <Text Include="conanfile.txt" />
     <Text Include="deps\CMakeLists.txt" />
     <Text Include="deps\glad\CMakeLists.txt" />
     <Text Include="deps\imgui_sfml\CMakeLists.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\..\..\..\Downloads\top.png" />
-    <Image Include="assets\textures\blue.png" />
-    <Image Include="assets\textures\crate.png" />
-    <Image Include="assets\textures\crate_specular.png" />
-    <Image Include="assets\textures\grass_03.png" />
-    <Image Include="assets\textures\grass_specular.png" />
-    <Image Include="assets\textures\person.png" />
-    <Image Include="assets\textures\person_specular.png" />
-    <Image Include="assets\textures\white.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

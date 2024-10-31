@@ -2,7 +2,7 @@
 
 if [ "$1" = "release" ]
 then
-    ./build/release/PROJECT_NAME_PLACEHOLDER
+    ./build/release/spooky-boxes
 else
-    ./build/debug/PROJECT_NAME_PLACEHOLDER
+    ./build/debug/spooky-boxes
 fi

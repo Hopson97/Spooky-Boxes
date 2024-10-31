@@ -1,6 +1,4 @@
 # Linux
-/bin
-ogl_template 
 build/
 
 # Windows
@@ -19,6 +17,13 @@ Release/
 *.srctrlprj
 *.srctrldb
 *.srctrlbm
+
+# Vcpkg
+vcpkg_installed/
+
+spooky-boxes/
+
+
 assets/models/misc
 assets/models/backpack
 
