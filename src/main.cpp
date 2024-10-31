@@ -90,11 +90,14 @@ namespace
         glm::vec3 move{0.0f};
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
         {
-            move += forward_vector(transform.rotation);
+
+            move += flying ? forward_vector(transform.rotation)
+                           : forward_flat_vector(transform.rotation);
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
         {
-            move += backward_vector(transform.rotation);
+            move += flying ? backward_vector(transform.rotation)
+                           : backward_flat_vector(transform.rotation);
         }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
@@ -169,7 +172,8 @@ int main()
     context_settings.minorVersion = 5;
     context_settings.attributeFlags = sf::ContextSettings::Core;
 
-    sf::Window window({1600, 900}, "T e r r a i n", sf::Style::Default, context_settings);
+    sf::Window window({1600, 900}, "SPOOKY - Press F1 for debug. Press ESC to exit.",
+                      sf::Style::Default, context_settings);
     window.setVerticalSyncEnabled(true);
     bool mouse_locked = false;
 
@@ -182,7 +186,8 @@ int main()
         std::cerr << "Failed to init OpenGL - Is OpenGL linked correctly?\n";
         return -1;
     }
-    glClearColor(0.25, 0.7, 0.9, 1.0);
+    // glClearColor(0.25, 0.7, 0.9, 1.0);
+    glClearColor(0, 0, 0.01, 1.0);
     glViewport(0, 0, window.getSize().x, window.getSize().y);
     init_opengl_debugging();
 
@@ -216,7 +221,7 @@ int main()
     std::cout << "Seed: " << options.seed << "\n";
     HeightMap height_map{512};
     height_map.generate_terrain(options);
-    // height_map.set_base_height();
+    height_map.set_base_height();
 
     auto terrain_mesh = generate_terrain_mesh(height_map);
     auto water_mesh = generate_plane_mesh(height_map.size, height_map.size);
@@ -325,7 +330,7 @@ int main()
     }
 
     std::vector<Transform> people_transforms;
-    for (int i = 0; i < 50; i++)
+    for (int i = 0; i < 128; i++)
     {
         // float x = height_map.size / 2 + rand() % 25 - 50;
         // float z = height_map.size / 2 + rand() % 100 - 50;
@@ -346,21 +351,22 @@ int main()
 
     camera.transform.rotation = {0.0f, 100, 0.0f};
     // camera.transform.position = {15, height_map.max_height(), 440};
-    camera.transform.position = {235, 150, middle};
+    // camera.transform.position = {235, 150, middle};
 
     Transform player_transform;
-    player_transform.position = {240, 145, middle};
+
     bool player_grounded = false;
 
     // Spooky Settings
-    /*
     camera.transform.rotation = {0.0f, 100, 0.0f};
-    camera.transform.position = {225, 11.5, 255};
+    player_transform.position = {200, 11.5, 118};
+    player_transform.position.y =
+        height_map.get_height(player_transform.position.x, player_transform.position.z) + 2;
+
     settings.lights.dir_light.direction = {0.9, -1.5, 0.075, -1};
     settings.lights.dir_light.ambient_intensity = 0.03f;
     settings.lights.dir_light.diffuse_intensity = 0.1f;
     settings.lights.spot_light.cutoff = 15.0f;
-    */
 
     // ----------------------------
     // ==== Load sound effects ====
@@ -547,6 +553,9 @@ int main()
     sf::Clock game_time;
     sf::Clock delta_clock;
 
+    bool is_debug = false;
+    bool flying = true;
+
     Profiler profiler;
     while (window.isOpen())
     {
@@ -570,48 +579,61 @@ int main()
                 {
                     mouse_locked = !mouse_locked;
                 }
+                else if (e.key.code == sf::Keyboard::F1)
+                {
+                    is_debug = !is_debug;
+                    mouse_locked = is_debug;
+                }
+                else if (e.key.code == sf::Keyboard::F)
+                {
+                    flying = !flying;
+                }
+
                 else if (e.key.code == sf::Keyboard::B)
                 {
                     // Size of the boxe quad
                     float width = 3;
 
                     // X/Z start position
-                    float base = model_transform.position.x;
+                    float base_x = model_transform.position.x;
+                    float base_z = model_transform.position.z;
+                    // float base_x = camera.transform.position.x;
+                    // float base_z = camera.transform.position.z;
 
                     // Y Start position
-                    float start = height_map.get_height(base, base) + 25;
+                    float start = height_map.get_height(base_x, base_z) + 25;
 
                     // Height of the box stack
                     float height = 25;
 
                     float mass = 0.25f;
 
-                    for (float y = start; y < start + height; y++)
+                    for (int y = start; y < start + height; y++)
                     {
-                        for (float x = base; x < base + width; x++)
+                        for (int x = base_x; x < base_x + width; x++)
                         {
-                            add_dynamic_shape({x, y, base}, {0, 0, 0}, mass);
+                            add_dynamic_shape({x, y, base_x}, {0, 0, 0}, mass);
                         }
                     }
-                    for (float y = start; y < start + height; y++)
+                    for (int y = start; y < start + height; y++)
                     {
-                        for (float x = base; x < base + width; x++)
+                        for (int x = base_x; x < base_x + width; x++)
                         {
-                            add_dynamic_shape({x, y, base + width}, {0, 0, 0}, mass);
+                            add_dynamic_shape({x, y, base_x + width}, {0, 0, 0}, mass);
                         }
                     }
-                    for (float y = start; y < start + height; y++)
+                    for (int y = start; y < start + height; y++)
                     {
-                        for (float z = base; z < base + width + 1; z++)
+                        for (int z = base_z; z < base_z + width + 1; z++)
                         {
-                            add_dynamic_shape({base - 1, y, z}, {0, 0, 0}, mass);
+                            add_dynamic_shape({base_z - 1, y, z}, {0, 0, 0}, mass);
                         }
                     }
-                    for (float y = start; y < start + height; y++)
+                    for (int y = start; y < start + height; y++)
                     {
-                        for (float z = base; z < base + width + 1; z++)
+                        for (int z = base_z; z < base_z + width + 1; z++)
                         {
-                            add_dynamic_shape({base + width, y, z}, {0, 0, 0}, mass);
+                            add_dynamic_shape({base_z + width, y, z}, {0, 0, 0}, mass);
                         }
                     }
                 }
@@ -638,7 +660,8 @@ int main()
         // ---------------
         auto& input_profiler = profiler.begin_section("Input");
         auto SPEED = 3.0f;
-        auto input = get_keyboard_input(player_transform, true, player_grounded);
+        player_transform.rotation = camera.transform.rotation;
+        auto input = get_keyboard_input(player_transform, flying, player_grounded);
         auto translate = input.move * SPEED;
 
         if (!mouse_locked)
@@ -656,10 +679,9 @@ int main()
         // ==== Sound handling ====
         // ------------------------
         // Walking sound effects
-
         auto cam_pos = camera.transform.position;
         auto height = height_map.get_height(cam_pos.x, cam_pos.z);
-        if ((std::abs(translate.x + translate.y + translate.z) > 0) && cam_pos.y < height + 1.0f)
+        if ((std::abs(translate.x + translate.y + translate.z) > 0) && cam_pos.y < height + 2.0f)
         {
             if (walk_sounds[sound_idx].getStatus() != sf::Sound::Status::Playing)
             {
@@ -673,9 +695,6 @@ int main()
             }
         }
 
-        camera.transform.position.x = player_transform.position.x;
-        camera.transform.position.z = player_transform.position.z;
-
         // ----------------------------------
         // ==== Update w/ Fixed timestep ====
         // ----------------------------------
@@ -685,22 +704,22 @@ int main()
             time_step.update(
                 [&](auto dt)
                 {
-                    auto& player = physics.objects[player_index];
+                    // auto& player = physics.objects[player_index];
 
-                    // camera.transform.position += translate * dt.asSeconds();
-                    auto move = to_btvec3(translate);
+                    camera.transform.position += translate * dt.asSeconds();
+                    // auto move = to_btvec3(translate);
 
-                    if (!input.jump)
-                    {
-                        translate.y = player.body->getLinearVelocity().y();
-                    }
+                    // if (!input.jump)
+                    //{
+                    //     translate.y = player.body->getLinearVelocity().y();
+                    // }
 
-                    player.body->setLinearVelocity(to_btvec3(translate));
+                    // player.body->setLinearVelocity(to_btvec3(translate));
                     player_transform.position += translate * dt.asSeconds();
-                    if (cam_pos.y > height + 0.25)
-                    {
-                        cam_pos -= 0.5f;
-                    }
+                    // if (cam_pos.y > height + 0.25)
+                    //{
+                    //     cam_pos -= 0.5f;
+                    // }
 
                     light_transform.position.x +=
                         glm::sin(game_time_now.asSeconds() * 0.55f) * dt.asSeconds() * 3.0f;
@@ -712,8 +731,18 @@ int main()
                         1.0f;
                     //   settings.spot_light.cutoff -= 0.01;
                 });
+
+            float h =
+                height_map.get_height(player_transform.position.x, player_transform.position.z) + 1;
+            if (!flying || player_transform.position.y < h)
+            {
+                player_transform.position.y = h + 1;
+            }
+            camera.transform.position = player_transform.position;
+
             update_profiler.end_section();
         }
+
         // -------------------------
         // ==== Bullet3D Update ====
         // -------------------------
@@ -904,12 +933,12 @@ int main()
         // ==== Render Player ====
         // glm::mat4 m{1.0f};
         // box_transform.body->getWorldTransform().getOpenGLMatrix(glm::value_ptr(m));
-        auto m = create_model_matrix(player_transform);
+        // auto m = create_model_matrix(player_transform);
         // m = glm::translate(m, {-0.5, -0.5, -0.5});
-        scene_shader.set_uniform("model_matrix", m);
-        box_vertex_mesh.bind();
-        person_material.bind();
-        box_vertex_mesh.draw();
+        // scene_shader.set_uniform("model_matrix", m);
+        // box_vertex_mesh.bind();
+        // person_material.bind();
+        // box_vertex_mesh.draw();
 
         rendering_profile.end_section();
 
@@ -925,12 +954,12 @@ int main()
         // ---------------------
         // ==== S k y b o x ====
         // ---------------------
-        glCullFace(GL_FRONT);
-        skybox_mesh.bind();
-        skybox_texture.bind(0);
-        skybox_shader.bind();
-        skybox_mesh.draw();
-        glCullFace(GL_BACK);
+        // glCullFace(GL_FRONT);
+        // skybox_mesh.bind();
+        // skybox_texture.bind(0);
+        // skybox_shader.bind();
+        // skybox_mesh.draw();
+        // glCullFace(GL_BACK);
 
         // -----------------------
         // ==== Render to FBO ====
@@ -969,32 +998,37 @@ int main()
         // ==== End Frame ====
         // --------------------------
         // ImGui::ShowDemoWindow();
-        camera.gui();
-        GUI::debug_window(camera.transform.position, camera.transform.rotation, settings);
-        debug_renderer.gui();
-
-        if (ImGui::Begin("Stats"))
-        {
-            ImGui::Text("B o x e s: %d", physics.objects.size());
-        }
-        ImGui::End();
-
-        if (options.gui(height_map))
-        {
-            auto& time = profiler.begin_section("Terrain Re-Gen");
-            height_map.generate_terrain(options);
-            water_transform.position.y = 0;
-            options.water_level - height_map.set_base_height();
-
-            update_terrain_mesh(terrain_mesh, height_map);
-
-            terrain_mesh.update();
-
-            time.end_section();
-        }
 
         profiler.end_frame();
-        profiler.gui();
+        if (is_debug)
+        {
+
+            camera.gui();
+            GUI::debug_window(camera.transform.position, camera.transform.rotation, settings);
+            debug_renderer.gui();
+
+            if (ImGui::Begin("Stats"))
+            {
+                ImGui::Text("B o x e s: %d", physics.objects.size());
+            }
+            ImGui::End();
+
+            if (options.gui(height_map))
+            {
+                auto& time = profiler.begin_section("Terrain Re-Gen");
+                height_map.generate_terrain(options);
+                water_transform.position.y = 0;
+                options.water_level - height_map.set_base_height();
+
+                update_terrain_mesh(terrain_mesh, height_map);
+
+                terrain_mesh.update();
+
+                time.end_section();
+            }
+
+            profiler.gui();
+        }
 
         GUI::end_frame();
 

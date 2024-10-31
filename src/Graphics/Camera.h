@@ -23,6 +23,6 @@ struct PerspectiveCamera
 
     float aspect_ = 0;
     float fov_ = 0;
-    float near_ = 1.0f;
-    float far_ = 20000.0f; 
+    float near_ = 0.2f;
+    float far_ = 2000.0f; 
 };

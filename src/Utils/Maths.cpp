@@ -37,6 +37,23 @@ glm::vec3 backward_vector(const glm::vec3& rotation)
     return -forward_vector(rotation);
 }
 
+glm::vec3 forward_flat_vector(const glm::vec3& rotation)
+{
+    float yaw = glm::radians(rotation.y);
+    float pitch = glm::radians(rotation.x);
+
+    return {
+        glm::cos(yaw) * glm::cos(pitch),
+        0,
+        glm::cos(pitch) * glm::sin(yaw),
+    };
+}
+
+glm::vec3 backward_flat_vector(const glm::vec3& rotation)
+{
+    return -forward_vector(rotation);
+}
+
 glm::vec3 left_vector(const glm::vec3& rotation)
 {
     float yaw = glm::radians(rotation.y + 90);
